@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="sr"><head><meta charset="utf-8"><title>Pregled modela</title>
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+<style>
+  body{margin:0;font-family:system-ui;background:#fff}
+  h1{font-size:14px;margin:6px 10px}
+  .g{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+  model-viewer{width:100%;height:46vh;background:#f4f1ec;--poster-color:transparent}
+  small{position:absolute;margin:4px 8px;color:#555;font-size:11px;z-index:2}
+  .c{position:relative}
+</style></head><body>
+<h1 id="t"></h1><div class="g" id="g"></div>
+<script>
+// ?m=models/x.glb[&anim=1]   — 4 pogleda: front, 3/4, bok, odozgo; anim=1 pušta animaciju do kraja
+const q = new URLSearchParams(location.search), m = '../' + q.get('m');
+document.getElementById('t').textContent = m;
+const views = [['front', '0deg 85deg'], ['3/4', '35deg 70deg'], ['bok', '90deg 85deg'], ['odozgo', '0deg 5deg']];
+document.getElementById('g').innerHTML = views.map(([n, o]) => `<div class="c"><small>${n}</small><model-viewer src="${m}" camera-controls camera-orbit="${o} auto" field-of-view="30deg" shadow-intensity="1" exposure="1.1" interaction-prompt="none" loading="eager" reveal="auto" ${q.get('anim') ? 'autoplay animation-name="Otvori" animation-crossfade-duration="0"' : ''}></model-viewer></div>`).join('');
+</script></body></html>

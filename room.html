@@ -3,19 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Dizajner sobe – Forma Ideale</title>
+<title>Dizajner sobe – Aki</title>
 <script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
 </script>
 <style>
-  :root{--bg:#faf7f2;--ink:#2b2420;--muted:#7a6f66;--accent:#c4161c;--line:#eadfd2}
+  :root{--bg:#faf7f2;--ink:#2b2420;--muted:#7a6f66;--accent:#b5532f;--line:#eadfd2}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#efe9e1}
   canvas{display:block;touch-action:none}
   #ui{position:fixed;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between}
   #ui > *{pointer-events:auto}
   .top{display:flex;gap:10px;align-items:center;padding:10px 12px;background:rgba(255,255,255,.92);border-bottom:1px solid var(--line)}
-  .top a{color:var(--ink);text-decoration:none;font-weight:700}.top a span{color:var(--accent)}
+  .top a{color:var(--ink);text-decoration:none;font-weight:700;font-family:Georgia,'Times New Roman',serif;font-size:1.6rem;line-height:1}.top a span{color:var(--accent)}
   .top .sp{flex:1}
   .btn{background:var(--accent);color:#fff;border:0;padding:10px 16px;border-radius:999px;font-size:.95rem;font-weight:600;cursor:pointer}
   .btn.ghost{background:#fff;color:var(--accent);border:2px solid var(--accent)}
@@ -39,7 +39,7 @@
 <body>
 <div id="ui">
   <div class="top">
-    <a href="index.html">Forma<span>Ideale</span></a>
+    <a href="index.html">Aki<span>.</span></a>
     <span class="sp"></span>
     <button class="btn" id="arStart" hidden>📱 Pokreni AR</button>
     <button class="btn ghost" id="arEnd" hidden>Izađi iz AR</button>
@@ -93,14 +93,14 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 0.4, 0); controls.maxPolarAngle = Math.PI / 2.02; controls.update();
 
 // reticle (AR)
-const reticle = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.16, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xc4161c }));
+const reticle = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.16, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xb5532f }));
 reticle.matrixAutoUpdate = false; reticle.visible = false; scene.add(reticle);
 
 // ---------- predmeti ----------
 const loader = new GLTFLoader(), cache = new Map();
 const items = [];
 let selected = null, ghost = null, ghostBackup = null;
-const selBox = new THREE.Box3Helper(new THREE.Box3(), 0xc4161c); selBox.visible = false; scene.add(selBox);
+const selBox = new THREE.Box3Helper(new THREE.Box3(), 0xb5532f); selBox.visible = false; scene.add(selBox);
 
 const shadowTex = (() => {
   const c = document.createElement('canvas'); c.width = c.height = 64;
@@ -153,11 +153,23 @@ async function addProduct(p) {
     select(item);
     setHint('Usmerite kameru ka podu, pa dodirnite da postavite.');
   } else {
-    const n = items.length;
-    item.position.set(((n % 3) - 1) * 0.9, 0, (Math.floor(n / 3) % 2 - 0.5) * 1.2);
+    placeFree(item);
     items.push(item); select(item);
     setHint('Prevucite predmet da ga pomerite. Dva prsta ili točkić za kameru.');
   }
+}
+
+// u 3D pregledu: nađi prvo slobodno mesto u sobi (bez preklapanja sa postavljenim komadima)
+function placeFree(item) {
+  scene.updateMatrixWorld(true);
+  const own = new THREE.Box3().setFromObject(item.userData.model), sz = own.getSize(new THREE.Vector3()), c = own.getCenter(new THREE.Vector3());
+  const others = items.map(i => new THREE.Box3().setFromObject(i.userData.model).expandByScalar(0.05));
+  const hx = sz.x / 2, hz = sz.z / 2;
+  for (let z = -2.5 + hz; z <= 2.5 - hz + 1e-6; z += 0.25) for (let x = -3 + hx; x <= 3 - hx + 1e-6; x += 0.25) {
+    const b = new THREE.Box3(new THREE.Vector3(x - hx, 0, z - hz), new THREE.Vector3(x + hx, sz.y, z + hz));
+    if (!others.some(o => o.intersectsBox(b))) { item.position.set(x - c.x, 0, z - c.z); return; }
+  }
+  item.position.set(0, 0, 0);
 }
 
 function cancelGhost() {

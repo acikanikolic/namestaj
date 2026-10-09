@@ -3,183 +3,344 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Forma Ideale – 3D / AR demo</title>
-<meta name="description" content="Pogledajte nameštaj u 3D-u i isprobajte ga u svojoj sobi u prirodnoj veličini pomoću proširene stvarnosti (AR).">
-<meta property="og:title" content="Forma Ideale – isprobajte nameštaj u svojoj sobi">
-<meta property="og:description" content="3D prikaz i AR u prirodnoj veličini – direktno sa telefona.">
-<meta property="og:image" content="images/11008303.jpg">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23c4161c'/%3E%3Ctext x='16' y='23' font-size='20' font-family='Arial' font-weight='700' text-anchor='middle' fill='white'%3EF%3C/text%3E%3C/svg%3E">
+<title>Aki – Nameštaj u 3D i AR</title>
+<meta name="description" content="Aki: pogledajte nameštaj u 3D-u sa tačnim dimenzijama i isprobajte ga u svojoj sobi u prirodnoj veličini pomoću proširene stvarnosti (AR).">
+<meta property="og:title" content="Aki – isprobajte nameštaj u svojoj sobi">
+<meta property="og:description" content="3D prikaz, tačne mere i AR u prirodnoj veličini – direktno sa telefona.">
+<meta property="og:image" content="images/loalti.jpg">
+<meta name="theme-color" content="#faf7f2">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23b5532f'/%3E%3Ctext x='16' y='23' font-size='19' font-family='Georgia,serif' font-weight='700' text-anchor='middle' fill='white'%3EA%3C/text%3E%3C/svg%3E">
 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
-  :root{--bg:#faf7f2;--ink:#2b2420;--muted:#7a6f66;--accent:#c4161c;--card:#fff;--line:#eadfd2}
+  :root{--bg:#faf7f2;--bg2:#f2ece3;--ink:#231f1c;--muted:#756a60;--accent:#b5532f;--accent-d:#97411f;--card:#fff;--line:#e8ddd0;--r:18px;--shadow:0 12px 34px rgba(60,40,20,.12)}
   *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
-  header{display:flex;justify-content:space-between;align-items:center;padding:18px 5vw;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
-  .logo{font-size:1.4rem;font-weight:700;letter-spacing:.5px}.logo span{color:var(--accent);margin-left:4px}
-  nav a{margin-left:22px;color:var(--ink);text-decoration:none;font-size:.95rem}nav a:hover{color:var(--accent)}
-  .hero{padding:80px 5vw;background:linear-gradient(120deg,#f1ece6,#faf7f2);display:grid;gap:14px}
-  .hero h1{font-size:clamp(2rem,5vw,3.4rem);margin:0;max-width:16ch;line-height:1.1}
-  .hero p{max-width:50ch;color:var(--muted);font-size:1.1rem;margin:0}
-  .btn{display:inline-block;background:var(--accent);color:#fff;border:0;padding:12px 22px;border-radius:999px;font-size:1rem;cursor:pointer;text-decoration:none;font-weight:600}
-  .btn:hover{filter:brightness(1.08)}
-  .btn.ghost{background:transparent;color:var(--accent);border:2px solid var(--accent)}
-  main{padding:50px 5vw}
-  h2{margin:0 0 24px;font-size:1.7rem}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:24px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .2s}
-  .card:hover{box-shadow:0 10px 30px rgba(80,50,20,.12)}
-  .card model-viewer{width:100%;height:240px;background:#fff;--poster-color:transparent}
-  .info{padding:16px;display:flex;flex-direction:column;gap:6px;flex:1}
-  .info h3{margin:0;font-size:1.1rem}.info .desc{color:var(--muted);font-size:.9rem;flex:1}
-  .price{font-weight:700;font-size:1.2rem}
-  .row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
-  .row .btn{padding:9px 16px;font-size:.9rem}
-  footer{padding:30px 5vw;text-align:center;color:var(--muted);border-top:1px solid var(--line);margin-top:40px}
-  html{scroll-behavior:smooth}
-  .hero{position:relative;overflow:hidden}
-  .hero-in{display:grid;grid-template-columns:1.1fr 1fr;gap:30px;align-items:center}
-  .hero-txt{display:grid;gap:14px;justify-items:start}
-  .hero model-viewer{width:100%;height:380px;--poster-color:transparent}
-  .hero-btns{display:flex;gap:12px;flex-wrap:wrap}
-  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-bottom:56px}
-  .step{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px}
-  .step b{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;margin-bottom:10px}
-  .step h3{margin:0 0 6px;font-size:1.05rem}.step p{margin:0;color:var(--muted);font-size:.92rem}
-  .filters{display:flex;gap:8px;flex-wrap:wrap;margin:-8px 0 22px}
-  .chip{border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 16px;border-radius:999px;cursor:pointer;font-size:.9rem}
+  html{scroll-behavior:smooth;scroll-padding-top:80px}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+  img{max-width:100%;display:block}
+  a{color:inherit}
+  .wrap{width:min(1200px,100% - 40px);margin-inline:auto}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--accent);color:#fff;border:2px solid var(--accent);padding:12px 22px;border-radius:999px;font-size:1rem;cursor:pointer;text-decoration:none;font-weight:600;transition:background .15s,transform .1s}
+  .btn:hover{background:var(--accent-d);border-color:var(--accent-d)}
+  .btn:active{transform:scale(.98)}
+  .btn.ghost{background:transparent;color:var(--accent)}
+  .btn.ghost:hover{background:var(--accent);color:#fff}
+  :focus-visible{outline:3px solid #1d4ed8;outline-offset:2px;border-radius:6px}
+
+  /* header */
+  header{position:sticky;top:0;z-index:30;background:rgba(250,247,242,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .bar{display:flex;align-items:center;gap:14px;height:68px}
+  .burger{display:none;width:44px;height:44px;border:1px solid var(--line);background:#fff;border-radius:12px;cursor:pointer;padding:0;place-items:center}
+  .burger span,.burger span::before,.burger span::after{display:block;width:20px;height:2px;background:var(--ink);border-radius:2px;position:relative;transition:transform .2s,opacity .2s}
+  .burger span::before,.burger span::after{content:"";position:absolute;left:0}
+  .burger span::before{top:-6px}.burger span::after{top:6px}
+  .burger[aria-expanded=true] span{background:transparent}
+  .burger[aria-expanded=true] span::before{top:0;transform:rotate(45deg)}
+  .burger[aria-expanded=true] span::after{top:0;transform:rotate(-45deg)}
+  .logo{font-family:Georgia,"Times New Roman",serif;font-size:1.9rem;font-weight:700;text-decoration:none;letter-spacing:-.5px;line-height:1}
+  .logo i{color:var(--accent);font-style:normal}
+  nav.main{display:flex;gap:6px;margin-left:auto}
+  nav.main a{padding:8px 14px;border-radius:999px;text-decoration:none;font-size:.95rem;font-weight:500}
+  nav.main a:hover{background:var(--bg2)}
+  nav.main a.cta{background:var(--ink);color:#fff}
+  nav.main a.cta:hover{background:var(--accent)}
+
+  /* burger drawer */
+  .scrim{position:fixed;inset:0;background:rgba(30,20,10,.45);opacity:0;pointer-events:none;transition:opacity .2s;z-index:40}
+  .drawer{position:fixed;top:0;left:0;bottom:0;width:min(86vw,340px);background:var(--bg);z-index:50;transform:translateX(-102%);transition:transform .25s ease;display:flex;flex-direction:column;box-shadow:var(--shadow);overflow:auto;visibility:hidden}
+  body.menu .scrim{opacity:1;pointer-events:auto}
+  body.menu .drawer{transform:none;visibility:visible}
+  .drawer .dh{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+  .drawer .x{width:40px;height:40px;border:0;background:var(--bg2);border-radius:50%;font-size:1.4rem;cursor:pointer}
+  .drawer .it{display:flex;align-items:center;justify-content:space-between;width:100%;padding:15px 20px;border:0;border-bottom:1px solid var(--line);background:none;font:inherit;font-weight:600;text-decoration:none;text-align:left;cursor:pointer;color:var(--ink)}
+  .drawer .it:hover{background:var(--bg2)}
+  .drawer .sub{padding:6px 0 10px;background:#fff;border-bottom:1px solid var(--line)}
+  .drawer .sub button{display:flex;justify-content:space-between;width:100%;padding:10px 20px 10px 34px;border:0;background:none;font:inherit;font-weight:500;color:var(--muted);cursor:pointer;text-align:left}
+  .drawer .sub button:hover{color:var(--accent)}
+  .drawer .lbl{padding:14px 20px 6px;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .drawer .foot{margin-top:auto;padding:18px 20px}
+
+  /* hero */
+  .hero{background:radial-gradient(120% 120% at 85% 10%,#f6e6d6 0,var(--bg) 55%);overflow:hidden}
+  .hero .wrap{display:grid;grid-template-columns:1.05fr 1fr;gap:30px;align-items:center;padding-block:56px}
+  .kicker{display:inline-flex;gap:8px;align-items:center;font-size:.85rem;font-weight:700;color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+  .kicker::before{content:"";width:28px;height:2px;background:var(--accent)}
+  .hero h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(2.3rem,5.4vw,4rem);line-height:1.04;margin:14px 0 16px;letter-spacing:-1px}
+  .hero p.lead{font-size:1.12rem;color:var(--muted);max-width:46ch;margin:0 0 26px}
+  .hero .btns{display:flex;gap:12px;flex-wrap:wrap}
+  .stats{display:flex;gap:28px;margin-top:34px;flex-wrap:wrap}
+  .stats div{font-size:.88rem;color:var(--muted)}.stats b{display:block;font-size:1.5rem;color:var(--ink);font-family:Georgia,serif}
+  .stage{position:relative}
+  .stage::before{content:"";position:absolute;inset:6% 4% 2%;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 1px var(--line),var(--shadow)}
+  .stage model-viewer{position:relative;width:100%;height:min(46vw,460px);min-height:300px;--poster-color:transparent;--progress-bar-color:var(--accent);--progress-bar-height:3px}
+  .pill{position:absolute;z-index:2;background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:.82rem;font-weight:600;box-shadow:0 6px 18px rgba(60,40,20,.1)}
+  .pill.a{top:8%;left:2%}.pill.b{bottom:12%;right:0}
+
+  section{padding-block:64px}
+  h2{font-family:Georgia,"Times New Roman",serif;font-size:clamp(1.7rem,3.4vw,2.4rem);margin:0 0 8px;letter-spacing:-.5px}
+  .sub-h{color:var(--muted);margin:0 0 30px;max-width:60ch}
+
+  /* kako radi */
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:24px}
+  .step b{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--accent);color:#fff;margin-bottom:14px;font-size:1.05rem}
+  .step h3{margin:0 0 6px;font-size:1.1rem}.step p{margin:0;color:var(--muted);font-size:.95rem}
+  .band{background:var(--bg2)}
+
+  /* alatke + mreža */
+  .tools{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+  .search{flex:1 1 220px;min-width:180px;padding:12px 18px;border:1px solid var(--line);border-radius:999px;background:#fff;font:inherit}
+  .sort{padding:12px 16px;border:1px solid var(--line);border-radius:999px;background:#fff;font:inherit}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+  .chip{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 18px;border-radius:999px;cursor:pointer;font:inherit;font-size:.92rem}
+  .chip:hover{border-color:var(--accent)}
   .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-  .tag{font-size:.75rem;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:22px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .2s,transform .2s;cursor:pointer;text-align:left;padding:0;font:inherit;color:inherit}
+  .card:hover{box-shadow:var(--shadow);transform:translateY(-3px)}
+  .card .ph{position:relative;aspect-ratio:4/3;background:#fff;display:grid;place-items:center;border-bottom:1px solid var(--line)}
+  .card .ph img{width:100%;height:100%;object-fit:contain;padding:10px}
+  .badges{position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap}
+  .badge{font-size:.72rem;font-weight:700;background:var(--ink);color:#fff;padding:3px 9px;border-radius:999px;letter-spacing:.03em}
+  .badge.l{background:var(--accent)}
+  .info{padding:16px 18px 18px;display:flex;flex-direction:column;gap:3px;flex:1}
+  .tag{font-size:.72rem;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+  .info h3{margin:0;font-size:1.08rem;line-height:1.3}
   .dims{color:var(--muted);font-size:.85rem}
-  .badge{display:inline-block;font-size:.75rem;background:#f1ece6;color:var(--muted);padding:3px 9px;border-radius:999px;margin-right:4px}
-  .contact{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;text-align:left;max-width:900px;margin:0 auto 20px}
-  .contact h4{margin:0 0 6px;color:var(--ink)}
-  .btn:focus-visible,.chip:focus-visible,.close:focus-visible{outline:3px solid #222;outline-offset:2px}
-  @media(max-width:720px){.hero-in{grid-template-columns:1fr}.hero model-viewer{height:280px}}
+  .price{font-weight:700;font-size:1.15rem;margin-top:auto;padding-top:10px}
+  .empty{padding:50px;text-align:center;color:var(--muted);background:#fff;border:1px dashed var(--line);border-radius:var(--r)}
+
+  /* dizajner banner */
+  .promo{background:var(--ink);color:#fff;border-radius:28px;padding:44px;display:grid;grid-template-columns:1.2fr 1fr;gap:26px;align-items:center}
+  .promo h2{color:#fff}.promo p{color:#cfc5ba;margin:0 0 20px}
+  .promo .btn{background:#fff;color:var(--ink);border-color:#fff}.promo .btn:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+  .promo ul{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+  .promo li{display:flex;gap:10px;align-items:flex-start;color:#e9e1d8}.promo li::before{content:"✓";color:#f0a37f;font-weight:700}
+
+  footer{background:#1c1815;color:#cfc5ba;padding:46px 0 26px}
+  footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:28px;margin-bottom:30px}
+  footer h4{margin:0 0 8px;color:#fff}
+  footer a{color:#f0a37f}
+  footer small{display:block;border-top:1px solid #34302b;padding-top:18px;color:#9a8f84}
+
   /* modal */
-  .modal{position:fixed;inset:0;background:rgba(30,20,10,.6);display:none;align-items:center;justify-content:center;z-index:20;padding:16px}
+  .modal{position:fixed;inset:0;background:rgba(30,20,10,.6);display:none;align-items:center;justify-content:center;z-index:60;padding:16px}
   .modal.open{display:flex}
-  .sheet{background:#fff;border-radius:18px;width:min(900px,100%);max-height:94vh;overflow:auto;display:grid;grid-template-columns:1.4fr 1fr}
-  .sheet model-viewer{width:100%;height:520px;background:#fff}
-  .side{padding:26px;display:flex;flex-direction:column;gap:14px}
-  .side h3{margin:0;font-size:1.5rem}
-  .qrbox{display:none;border:1px dashed var(--line);border-radius:12px;padding:14px;text-align:center;gap:8px;flex-direction:column;align-items:center}
+  .sheet{background:#fff;border-radius:22px;width:min(1000px,100%);max-height:94vh;overflow:auto;display:grid;grid-template-columns:1.4fr 1fr}
+  .sheet model-viewer{width:100%;height:560px;background:linear-gradient(#fff,#f6f1ea);--progress-bar-color:var(--accent);--progress-bar-height:3px}
+  .side{padding:26px;display:flex;flex-direction:column;gap:12px}
+  .side h3{margin:0;font-family:Georgia,serif;font-size:1.6rem;line-height:1.2}
+  .side .price{margin:0;padding:0;font-size:1.4rem}
+  .side p{margin:0;color:var(--muted)}
+  table.spec{border-collapse:collapse;width:100%;font-size:.92rem}
+  table.spec td{padding:7px 0;border-bottom:1px solid var(--line)}table.spec td:last-child{text-align:right;font-weight:600}
+  .qrbox{display:none;border:1px dashed var(--line);border-radius:14px;padding:14px;text-align:center;gap:8px;flex-direction:column;align-items:center}
   .qrbox.show{display:flex}.qrbox small{color:var(--muted)}
-  .close{align-self:flex-end;background:none;border:0;font-size:1.8rem;cursor:pointer;line-height:1;color:var(--muted)}
-  @media(max-width:720px){.sheet{grid-template-columns:1fr}.sheet model-viewer{height:340px}nav{display:none}}
+  .close{align-self:flex-end;background:var(--bg2);border:0;font-size:1.5rem;cursor:pointer;line-height:1;color:var(--ink);width:40px;height:40px;border-radius:50%}
+  .link{font-size:.9rem;color:var(--muted)}
+
+  @media(max-width:900px){
+    .burger{display:grid}nav.main{display:none}.bar{height:62px}.logo{margin-right:auto}
+    .hero .wrap{grid-template-columns:1fr;padding-block:30px}.stage{order:-1}
+    .stage model-viewer{height:300px}
+    .promo{grid-template-columns:1fr;padding:28px}
+    section{padding-block:44px}
+  }
+  @media(max-width:720px){.sheet{grid-template-columns:1fr}.sheet model-viewer{height:340px}.wrap{width:calc(100% - 32px)}}
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
 <header>
-  <div class="logo">Forma<span>Ideale</span></div>
-  <nav><a href="#proizvodi">Proizvodi</a><a href="#kako">Kako radi</a><a href="room.html">Dizajner sobe</a><a href="#kontakt">Kontakt</a></nav>
+  <div class="wrap bar">
+    <button class="burger" id="burger" aria-label="Meni" aria-expanded="false" aria-controls="drawer"><span></span></button>
+    <a class="logo" href="#top" aria-label="Aki – početna">Aki<i>.</i></a>
+    <nav class="main" aria-label="Glavni meni">
+      <a href="#proizvodi">Proizvodi</a><a href="#kako">Kako radi</a><a href="#kontakt">Kontakt</a><a class="cta" href="room.html">Dizajner sobe</a>
+    </nav>
+  </div>
 </header>
 
-<section class="hero">
-  <div class="hero-in">
-    <div class="hero-txt">
-      <h1>Isprobajte nameštaj u svojoj sobi pre kupovine.</h1>
-      <p>Pogledajte svaki komad u 3D-u, a zatim ga skenirajte telefonom i postavite u prirodnoj veličini u svoj prostor.</p>
-      <div class="hero-btns"><a class="btn" href="#proizvodi">Pogledaj ponudu</a><a class="btn ghost" href="#kako">Kako radi AR</a><a class="btn ghost" href="room.html">Dizajner sobe</a></div>
-    </div>
-    <model-viewer src="models/loalti.glb" alt="Trosed LOALTI u 3D-u" camera-controls auto-rotate interaction-prompt="none" shadow-intensity="1" camera-orbit="35deg 70deg auto"></model-viewer>
-  </div>
-</section>
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Meni" aria-hidden="true">
+  <div class="dh"><span class="logo">Aki<i>.</i></span><button class="x" id="drawerX" aria-label="Zatvori meni">×</button></div>
+  <a class="it" href="#proizvodi" data-nav>Svi proizvodi</a>
+  <div class="lbl">Kategorije</div>
+  <div class="sub" id="drawerCats"></div>
+  <a class="it" href="room.html">Dizajner sobe (AR) <span>→</span></a>
+  <a class="it" href="#kako" data-nav>Kako radi AR</a>
+  <a class="it" href="#kontakt" data-nav>Kontakt</a>
+  <div class="foot"><a class="btn" href="room.html" style="width:100%">📱 Postavi u svoju sobu</a></div>
+</aside>
 
-<main>
-  <section id="kako">
-    <h2>Kako radi AR</h2>
-    <div class="steps">
-      <div class="step"><b>1</b><h3>Izaberite proizvod</h3><p>Otvorite komad koji vam se sviđa i zavrtite ga u 3D-u.</p></div>
-      <div class="step"><b>2</b><h3>Skenirajte QR kod</h3><p>Na računaru dobijate QR kod, a na telefonu odmah dugme za AR.</p></div>
-      <div class="step"><b>3</b><h3>Postavite u sobu</h3><p>Usmerite kameru ka podu – nameštaj se prikazuje u pravoj veličini.</p></div>
+<main id="top">
+  <div class="hero">
+    <div class="wrap">
+      <div>
+        <span class="kicker">3D · AR · tačne mere</span>
+        <h1>Isprobajte nameštaj u svojoj sobi pre kupovine.</h1>
+        <p class="lead">Zavrtite svaki komad u 3D-u sa stvarnim dimenzijama, a zatim ga telefonom postavite u prirodnoj veličini u svoj prostor.</p>
+        <div class="btns"><a class="btn" href="#proizvodi">Pogledaj ponudu</a><a class="btn ghost" href="room.html">Dizajner sobe</a></div>
+        <div class="stats"><div><b id="statN">16</b>proizvoda u 3D-u</div><div><b>1:1</b>prirodna veličina u AR-u</div><div><b>0 din</b>isprobavanje</div></div>
+      </div>
+      <div class="stage">
+        <span class="pill a">🔄 Zavrtite 3D</span><span class="pill b">📱 Pogledaj u sobi</span>
+        <model-viewer src="models/loalti.glb" alt="Trosed LOALTI u 3D-u" camera-controls auto-rotate interaction-prompt="none" shadow-intensity="1" camera-orbit="35deg 72deg auto" loading="eager"></model-viewer>
+      </div>
+    </div>
+  </div>
+
+  <section class="band" id="kako">
+    <div class="wrap">
+      <h2>Kako radi AR</h2>
+      <p class="sub-h">Tri koraka od izbora do pogleda u vašoj sobi. Ne treba nikakva aplikacija.</p>
+      <div class="steps">
+        <div class="step"><b>1</b><h3>Izaberite proizvod</h3><p>Otvorite komad koji vam se sviđa, zavrtite ga i proverite dimenzije.</p></div>
+        <div class="step"><b>2</b><h3>Skenirajte QR kod</h3><p>Na računaru dobijate QR kod, a na telefonu odmah dugme za AR.</p></div>
+        <div class="step"><b>3</b><h3>Postavite u sobu</h3><p>Usmerite kameru ka podu – nameštaj se prikazuje u pravoj veličini.</p></div>
+      </div>
     </div>
   </section>
+
   <section id="proizvodi">
-    <h2>Naši proizvodi</h2>
-    <div class="filters" id="filters" role="group" aria-label="Kategorije"></div>
-    <div class="grid" id="grid"></div>
+    <div class="wrap">
+      <h2>Naši proizvodi</h2>
+      <p class="sub-h">Svaki model ima dimenzije kao pravi artikal, a komode, ormari i trosed imaju vrata, fioke i rasklapanje koje možete da isprobate.</p>
+      <div class="tools">
+        <input class="search" id="search" type="search" placeholder="Pretraži proizvode…" aria-label="Pretraga">
+        <select class="sort" id="sort" aria-label="Sortiranje"><option value="">Preporučeno</option><option value="asc">Cena: rastuće</option><option value="desc">Cena: opadajuće</option></select>
+      </div>
+      <div class="filters" id="filters" role="group" aria-label="Kategorije"></div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="wrap">
+      <div class="promo">
+        <div>
+          <h2>Dizajner sobe</h2>
+          <p>Postavite više komada odjednom u svoju pravu sobu preko kamere. Rotirajte, pomerajte i uporedite pre nego što kupite.</p>
+          <a class="btn" href="room.html">Otvori dizajner</a>
+        </div>
+        <ul><li>Više komada u istoj sobi</li><li>Prava veličina, tačne mere</li><li>Radi u pregledaču, bez aplikacije</li><li>AR na Androidu, 3D pregled svuda</li></ul>
+      </div>
+    </div>
   </section>
 </main>
 
 <footer id="kontakt">
-  <div class="contact">
-    <div><h4>Poseta</h4>Cene, dostupnost i tačne mere proverite u prodavnici.</div>
-    <div><h4>Originalna ponuda</h4><a href="https://formaideale.rs" target="_blank" rel="noopener">formaideale.rs</a></div>
-    <div><h4>Napomena</h4>3D modeli su orijentacione izrade, dimenzije su okvirne.</div>
+  <div class="wrap">
+    <div class="cols">
+      <div><h4 class="logo" style="font-size:1.5rem">Aki<i>.</i></h4>Nameštaj koji prvo možete da vidite u svom domu.</div>
+      <div><h4>Posetite prodavnicu</h4>Cene, dostupnost i tačne mere proverite u prodavnici pre kupovine.</div>
+      <div><h4>Originalna ponuda</h4><a href="https://formaideale.rs" target="_blank" rel="noopener">formaideale.rs</a></div>
+    </div>
+    <small>Demo stranica (nije zvanični sajt). Fotografije proizvoda, nazivi i cene: formaideale.rs, stanje od 9.10.2026. 3D modeli su izrađeni prema fotografijama i objavljenim dimenzijama i mogu se razlikovati od originala.</small>
   </div>
-  Demo stranica (nije zvanični sajt) · fotografije proizvoda: formaideale.rs
 </footer>
 
-<div class="modal" id="modal" aria-hidden="true">
+<div class="modal" id="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="m-name">
   <div class="sheet">
     <model-viewer id="mv" loading="eager" camera-controls auto-rotate shadow-intensity="1" shadow-softness="0.8" exposure="1.1"
       ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" alt="3D model proizvoda"></model-viewer>
     <div class="side">
       <button class="close" id="close" aria-label="Zatvori">×</button>
+      <span class="tag" id="m-cat"></span>
       <h3 id="m-name"></h3>
       <div class="price" id="m-price"></div>
-      <p id="m-desc" style="color:var(--muted);margin:0"></p>
+      <p id="m-desc"></p>
+      <table class="spec"><tr><td>Širina</td><td id="m-w"></td></tr><tr><td>Dubina</td><td id="m-d"></td></tr><tr><td>Visina</td><td id="m-h"></td></tr></table>
       <button class="btn ghost" id="openBtn" style="display:none">🚪 Otvori vrata i fioke</button>
       <button class="btn" id="arBtn">📱 Pogledaj u svojoj sobi</button>
-      <a id="m-link" class="dims" target="_blank" rel="noopener" style="text-decoration:underline">Pogledaj na formaideale.rs ↗</a>
       <div class="qrbox" id="qrbox">
         <strong>Pogledajte ovaj proizvod u vašoj sobi u prirodnoj veličini</strong>
         <div id="qr"></div>
         <small>Skenirajte ovaj QR kod vašim mobilnim telefonom</small>
       </div>
+      <a id="m-link" class="link" target="_blank" rel="noopener">Pogledaj na formaideale.rs ↗</a>
     </div>
   </div>
 </div>
 
 <script src="products.js"></script>
 <script>
-
 const $ = id => document.getElementById(id);
 const grid = $('grid'), modal = $('modal'), mv = $('mv'), qrbox = $('qrbox');
+const priceNum = p => { const m = /^[\d.]+/.exec(p.price); return m ? +m[0].replace(/\./g, '') : Infinity; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cm = v => v.toString().replace('.', ',') + ' cm';
 
+/* ---------- burger meni ---------- */
+const burger = $('burger');
+function menu(open){
+  document.body.classList.toggle('menu', open);
+  burger.setAttribute('aria-expanded', open); $('drawer').setAttribute('aria-hidden', !open);
+  if (open) $('drawerX').focus(); else if ($('drawer').contains(document.activeElement)) burger.focus();
+}
+burger.onclick = () => menu(!document.body.classList.contains('menu'));
+$('scrim').onclick = $('drawerX').onclick = () => menu(false);
+$('drawer').addEventListener('click', e => { if (e.target.closest('[data-nav]')) menu(false); });
+
+/* ---------- filteri / pretraga / sortiranje ---------- */
 const cats = ['Sve', ...new Set(products.map(p => p.cat))];
 let curCat = 'Sve';
+$('statN').textContent = products.length;
+function setCat(c){ curCat = c; renderFilters(); renderGrid(); }
 function renderFilters(){
-  $('filters').innerHTML = cats.map(c => `<button class="chip ${c === curCat ? 'on' : ''}" data-cat="${c}">${c}</button>`).join('');
+  $('filters').innerHTML = cats.map(c => `<button class="chip ${c === curCat ? 'on' : ''}" data-cat="${esc(c)}" aria-pressed="${c === curCat}">${esc(c)}</button>`).join('');
 }
+$('drawerCats').innerHTML = cats.map(c => `<button data-cat="${esc(c)}" data-nav>${esc(c)}<span>${c === 'Sve' ? products.length : products.filter(p => p.cat === c).length}</span></button>`).join('');
 function renderGrid(){
-  grid.innerHTML = products.filter(p => curCat === 'Sve' || p.cat === curCat).map(p => `
-  <article class="card">
-    <model-viewer src="${p.model}" ${p.photo ? `poster="${p.photo}" reveal="interaction"` : ''} alt="${p.name}" camera-controls auto-rotate loading="lazy" interaction-prompt="none" shadow-intensity="1"></model-viewer>
+  const q = $('search').value.trim().toLowerCase(), s = $('sort').value;
+  let list = products.filter(p => (curCat === 'Sve' || p.cat === curCat) && (!q || (p.name + ' ' + p.cat + ' ' + p.desc).toLowerCase().includes(q)));
+  if (s) list = [...list].sort((a, b) => (priceNum(a) - priceNum(b)) * (s === 'asc' ? 1 : -1));
+  grid.innerHTML = list.length ? list.map(p => `
+  <button class="card" data-open="${p.id}" aria-label="${esc(p.name)} – otvori 3D prikaz">
+    <div class="ph"><img src="${p.photo}" alt="${esc(p.name)}" loading="lazy" width="400" height="300">
+      <div class="badges"><span class="badge">3D</span><span class="badge">AR</span>${p.animated ? '<span class="badge l">Otvara se</span>' : ''}</div></div>
     <div class="info">
-      <span class="tag">${p.cat}</span>
-      <h3>${p.name}</h3><div class="desc">${p.desc}</div>
+      <span class="tag">${esc(p.cat)}</span>
+      <h3>${esc(p.name)}</h3>
       <div class="dims">${p.dims}</div>
-      <div><span class="badge">3D</span><span class="badge">AR</span>${p.animated ? '<span class="badge">Otvaranje</span>' : ''}</div>
-      <div class="price">${p.price}</div>
-      <div class="row"><button class="btn" data-open="${p.id}">3D / u mojoj sobi</button></div>
+      <div class="price">${esc(p.price)}</div>
     </div>
-  </article>`).join('');
+  </button>`).join('') : '<div class="empty">Nema proizvoda za zadatu pretragu.</div>';
 }
-$('filters').addEventListener('click', e => { const c = e.target.dataset.cat; if (c) { curCat = c; renderFilters(); renderGrid(); } });
+document.addEventListener('click', e => {
+  const c = e.target.closest('[data-cat]'); if (c) { setCat(c.dataset.cat); if (c.closest('#drawer')) $('proizvodi').scrollIntoView(); }
+  const o = e.target.closest('[data-open]'); if (o) openProduct(o.dataset.open);
+});
+$('search').addEventListener('input', renderGrid); $('sort').addEventListener('change', renderGrid);
 renderFilters(); renderGrid();
 
-grid.addEventListener('click', e => { const id = e.target.dataset.open; if (id) openProduct(id); });
-
-let isOpen = false, openLabels = [];
+/* ---------- prozor sa 3D prikazom ---------- */
+let isOpen = false, openLabels = [], lastFocus = null;
 function openProduct(id){
   const p = products.find(x => x.id === id); if (!p) return;
+  lastFocus = document.activeElement;
   mv.src = p.model; mv.alt = p.name;
-  $('m-name').textContent = p.name; $('m-price').textContent = p.price; $('m-desc').textContent = p.desc + ' Dimenzije (okvirno): ' + p.dims + '.';
-  $('openBtn').style.display = p.animated ? '' : 'none'; openLabels = p.openLabel ? ['🛏 ' + p.openLabel, '🛏 Vrati u trosed'] : ['🚪 Otvori vrata i fioke', '🚪 Zatvori vrata i fioke']; $('openBtn').textContent = openLabels[0]; isOpen = false; if (mv.pause) { mv.pause(); mv.timeScale = 1; mv.currentTime = 0; }
+  $('m-cat').textContent = p.cat; $('m-name').textContent = p.name; $('m-price').textContent = p.price; $('m-desc').textContent = p.desc;
+  $('m-w').textContent = cm(p.w); $('m-d').textContent = cm(p.d); $('m-h').textContent = cm(p.h);
+  $('openBtn').style.display = p.animated ? '' : 'none';
+  openLabels = p.openLabel ? ['🛏 ' + p.openLabel, '🛏 ' + (p.closeLabel || 'Zatvori')] : ['🚪 Otvori vrata i fioke', '🚪 Zatvori vrata i fioke'];
+  $('openBtn').textContent = openLabels[0]; isOpen = false;
+  if (mv.pause) { mv.pause(); mv.timeScale = 1; mv.currentTime = 0; }
   qrbox.classList.remove('show'); $('qr').innerHTML = '';
-  modal.classList.add('open'); modal.setAttribute('aria-hidden','false');
-  history.replaceState(null,'','?p='+id);
-  modal.dataset.id = id; $('m-link').style.display = p.url ? '' : 'none'; if (p.url) $('m-link').href = p.url;
+  $('m-link').style.display = p.url ? '' : 'none'; if (p.url) $('m-link').href = p.url;
+  modal.classList.add('open'); modal.setAttribute('aria-hidden', 'false'); document.body.style.overflow = 'hidden';
+  history.replaceState(null, '', '?p=' + id);
+  modal.dataset.id = id; $('close').focus();
 }
-function closeModal(){ modal.classList.remove('open'); history.replaceState(null,'',location.pathname); }
+function closeModal(){
+  modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true'); document.body.style.overflow = '';
+  history.replaceState(null, '', location.pathname); if (lastFocus) lastFocus.focus();
+}
 $('close').onclick = closeModal;
 modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (modal.classList.contains('open')) closeModal(); else menu(false); } });
 
-// animacija vrata / fioka (glTF animacija 'Otvori')
-// po učitavanju modela izaberi animaciju, ali je NE pokreći
+// animacija vrata / fioka (glTF animacija 'Otvori'): izaberi je po učitavanju, ali je NE pokreći
 mv.addEventListener('load', () => {
   if (mv.availableAnimations.length) { mv.animationName = mv.availableAnimations[0]; mv.pause(); mv.currentTime = 0; }
 });
@@ -189,10 +350,7 @@ function setOpen(open){
   mv.currentTime = open ? 0 : dur;
   mv.play({repetitions: 1});   // samo jednom, zatim ostaje u krajnjem položaju
 }
-$('openBtn').onclick = () => {
-  isOpen = !isOpen; setOpen(isOpen);
-  $('openBtn').textContent = openLabels[isOpen ? 1 : 0];
-};
+$('openBtn').onclick = () => { isOpen = !isOpen; setOpen(isOpen); $('openBtn').textContent = openLabels[isOpen ? 1 : 0]; };
 
 // AR: na telefonu pokreni AR, na računaru prikaži QR kod.
 // Za AR koristimo verziju modela bez animacije (Scene Viewer / Quick Look animaciju vrte u petlji).
