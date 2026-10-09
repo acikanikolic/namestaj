@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Dizajner sobe – Forma Ideale</title>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<style>
+  :root{--bg:#faf7f2;--ink:#2b2420;--muted:#7a6f66;--accent:#c4161c;--line:#eadfd2}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#efe9e1}
+  canvas{display:block;touch-action:none}
+  #ui{position:fixed;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between}
+  #ui > *{pointer-events:auto}
+  .top{display:flex;gap:10px;align-items:center;padding:10px 12px;background:rgba(255,255,255,.92);border-bottom:1px solid var(--line)}
+  .top a{color:var(--ink);text-decoration:none;font-weight:700}.top a span{color:var(--accent)}
+  .top .sp{flex:1}
+  .btn{background:var(--accent);color:#fff;border:0;padding:10px 16px;border-radius:999px;font-size:.95rem;font-weight:600;cursor:pointer}
+  .btn.ghost{background:#fff;color:var(--accent);border:2px solid var(--accent)}
+  .btn.sm{padding:8px 12px;font-size:.85rem}
+  .btn[hidden]{display:none}
+  #hint{align-self:center;max-width:90%;background:rgba(30,20,10,.75);color:#fff;padding:8px 14px;border-radius:12px;font-size:.9rem;text-align:center;pointer-events:none}
+  #hint:empty{display:none}
+  .bottom{background:rgba(255,255,255,.94);border-top:1px solid var(--line);padding:8px 10px 12px;display:flex;flex-direction:column;gap:8px}
+  #sel{display:none;gap:8px;flex-wrap:wrap;align-items:center}
+  #sel.show{display:flex}
+  #sel b{margin-right:auto;font-size:.95rem}
+  #strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+  .chip{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:12px;padding:8px 12px;font-size:.85rem;cursor:pointer;text-align:left;color:var(--ink)}
+  .chip small{display:block;color:var(--muted)}
+  .chip:active{background:#f1ece6}
+  #note{position:fixed;left:12px;right:12px;top:64px;background:#fff7e6;border:1px solid #f0d9a8;border-radius:12px;padding:10px 14px;font-size:.88rem;display:none;pointer-events:auto}
+  #note.show{display:block}
+  .btn:focus-visible,.chip:focus-visible{outline:3px solid #222;outline-offset:2px}
+</style>
+</head>
+<body>
+<div id="ui">
+  <div class="top">
+    <a href="index.html">Forma<span>Ideale</span></a>
+    <span class="sp"></span>
+    <button class="btn" id="arStart" hidden>📱 Pokreni AR</button>
+    <button class="btn ghost" id="arEnd" hidden>Izađi iz AR</button>
+  </div>
+  <div id="hint"></div>
+  <div class="bottom">
+    <div id="sel">
+      <b id="selName"></b>
+      <button class="btn ghost sm" id="rotL" aria-label="Rotiraj ulevo">⟲ 15°</button>
+      <button class="btn ghost sm" id="rotR" aria-label="Rotiraj udesno">⟳ 15°</button>
+      <button class="btn ghost sm" id="move" hidden>✋ Pomeri</button>
+      <button class="btn ghost sm" id="cancel" hidden>Otkaži</button>
+      <button class="btn sm" id="del">🗑 Ukloni</button>
+    </div>
+    <div id="strip" role="list"></div>
+    <div id="clearRow"><button class="btn ghost sm" id="clear">Očisti prostoriju</button></div>
+  </div>
+</div>
+<div id="note"></div>
+
+<script src="products.js"></script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const $ = id => document.getElementById(id);
+const ui = $('ui'), hint = $('hint');
+
+// ---------- scena ----------
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xefe9e1);
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.05, 50);
+camera.position.set(3.6, 3.4, 4.8);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.xr.enabled = true;
+document.body.prepend(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8d8378, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(2, 4, 3); scene.add(sun);
+
+// pod za 3D pregled (u AR-u se sakriva)
+const room = new THREE.Group(); scene.add(room);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(6, 5), new THREE.MeshStandardMaterial({ color: 0xe3d7c6, roughness: 1 }));
+floor.rotation.x = -Math.PI / 2; room.add(floor);
+const grid = new THREE.GridHelper(6, 12, 0xb8a98f, 0xcdbfa8); grid.position.y = 0.002; room.add(grid);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.4, 0); controls.maxPolarAngle = Math.PI / 2.02; controls.update();
+
+// reticle (AR)
+const reticle = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.16, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xc4161c }));
+reticle.matrixAutoUpdate = false; reticle.visible = false; scene.add(reticle);
+
+// ---------- predmeti ----------
+const loader = new GLTFLoader(), cache = new Map();
+const items = [];
+let selected = null, ghost = null, ghostBackup = null;
+const selBox = new THREE.Box3Helper(new THREE.Box3(), 0xc4161c); selBox.visible = false; scene.add(selBox);
+
+const shadowTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 4, 32, 32, 32);
+  gr.addColorStop(0, 'rgba(0,0,0,.45)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);
+})();
+
+function loadModel(url) {
+  if (!cache.has(url)) cache.set(url, new Promise((res, rej) => loader.load(url, g => res(g.scene), undefined, rej)));
+  return cache.get(url);
+}
+
+async function makeItem(p) {
+  const src = await loadModel(p.arModel || p.model);          // verzija bez animacije
+  const model = src.clone(true);
+  const item = new THREE.Group(); item.userData = { isItem: true, product: p, model };
+  item.add(model);
+  const b = new THREE.Box3().setFromObject(model), sz = b.getSize(new THREE.Vector3()), c = b.getCenter(new THREE.Vector3());
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(sz.x * 1.5, sz.z * 1.5), new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false }));
+  sh.rotation.x = -Math.PI / 2; sh.position.set(c.x, 0.003, c.z); sh.userData.skip = true; item.add(sh);
+  return item;
+}
+
+function select(item) {
+  selected = item;
+  $('sel').classList.toggle('show', !!item);
+  selBox.visible = !!item;
+  if (item) $('selName').textContent = item.userData.product.name;
+  refreshButtons();
+}
+function refreshButtons() {
+  const ar = !!renderer.xr.isPresenting;
+  $('move').hidden = !ar || !selected || !!ghost;
+  $('cancel').hidden = !ghost;
+  $('rotL').hidden = $('rotR').hidden = !selected || !!ghost;
+  $('del').hidden = !selected || !!ghost;
+}
+function setHint(t) { hint.textContent = t || ''; }
+
+async function addProduct(p) {
+  if (ghost) cancelGhost();
+  const item = await makeItem(p);
+  scene.add(item);
+  if (renderer.xr.isPresenting) {
+    ghost = item; ghostBackup = null; item.visible = false;
+    // okreni "licem" ka korisniku
+    const cam = renderer.xr.getCamera(); const cp = new THREE.Vector3().setFromMatrixPosition(cam.matrixWorld);
+    item.userData.faceUser = cp;
+    select(item);
+    setHint('Usmerite kameru ka podu, pa dodirnite da postavite.');
+  } else {
+    const n = items.length;
+    item.position.set(((n % 3) - 1) * 0.9, 0, (Math.floor(n / 3) % 2 - 0.5) * 1.2);
+    items.push(item); select(item);
+    setHint('Prevucite predmet da ga pomerite. Dva prsta ili točkić za kameru.');
+  }
+}
+
+function cancelGhost() {
+  if (!ghost) return;
+  if (ghostBackup) { ghost.position.copy(ghostBackup.pos); ghost.rotation.y = ghostBackup.rot; ghost.visible = true; }
+  else { scene.remove(ghost); const i = items.indexOf(ghost); if (i >= 0) items.splice(i, 1); select(null); }
+  ghost = null; ghostBackup = null; setHint(''); refreshButtons();
+}
+
+function removeSelected() {
+  if (!selected) return;
+  scene.remove(selected); const i = items.indexOf(selected); if (i >= 0) items.splice(i, 1);
+  select(null);
+}
+
+// ---------- UI ----------
+$('strip').innerHTML = products.map(p => `<button class="chip" role="listitem" data-id="${p.id}">${p.name}<small>${p.dims}</small></button>`).join('');
+$('strip').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) addProduct(products.find(x => x.id === b.dataset.id)); });
+$('rotL').onclick = () => selected && (selected.rotation.y += Math.PI / 12);
+$('rotR').onclick = () => selected && (selected.rotation.y -= Math.PI / 12);
+$('del').onclick = removeSelected;
+$('cancel').onclick = cancelGhost;
+$('move').onclick = () => {
+  if (!selected) return;
+  ghost = selected; ghostBackup = { pos: selected.position.clone(), rot: selected.rotation.y };
+  setHint('Dodirnite novo mesto na podu.'); refreshButtons();
+};
+$('clear').onclick = () => { cancelGhost(); items.splice(0).forEach(i => scene.remove(i)); select(null); setHint(''); };
+addEventListener('keydown', e => { if (e.key === 'Delete' || e.key === 'Backspace') removeSelected(); });
+// dodir na dugmad u AR-u ne sme da "postavi" predmet
+ui.addEventListener('beforexrselect', e => e.preventDefault());
+
+// ---------- 3D pregled: prevlačenje po podu ----------
+const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+let drag = null;
+const itemRoot = o => { while (o && !o.userData.isItem) o = o.parent; return o; };
+function pick(objs) {
+  const hits = ray.intersectObjects(objs, true).filter(h => !h.object.userData.skip);
+  return hits.length ? itemRoot(hits[0].object) : null;
+}
+function setPtr(e) { const r = renderer.domElement.getBoundingClientRect(); ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ptr, camera); }
+renderer.domElement.addEventListener('pointerdown', e => {
+  if (renderer.xr.isPresenting) return;
+  setPtr(e); const it = pick(items);
+  if (it) {
+    select(it); const pt = new THREE.Vector3(); ray.ray.intersectPlane(plane, pt);
+    drag = { it, off: it.position.clone().sub(pt) }; controls.enabled = false;
+  } else select(null);
+});
+renderer.domElement.addEventListener('pointermove', e => {
+  if (!drag) return; setPtr(e); const pt = new THREE.Vector3();
+  if (ray.ray.intersectPlane(plane, pt)) { drag.it.position.x = THREE.MathUtils.clamp(pt.x + drag.off.x, -2.8, 2.8); drag.it.position.z = THREE.MathUtils.clamp(pt.z + drag.off.z, -2.3, 2.3); }
+});
+addEventListener('pointerup', () => { drag = null; controls.enabled = true; });
+
+// ---------- AR ----------
+let hitSource = null, hitRequested = false;
+const ctrl = renderer.xr.getController(0); scene.add(ctrl);
+ctrl.addEventListener('select', () => {
+  if (ghost) {
+    if (!reticle.visible) return;
+    const g = ghost;
+    g.position.setFromMatrixPosition(reticle.matrix); g.visible = true;
+    if (g.userData.faceUser) { const d = g.userData.faceUser.clone().sub(g.position); g.rotation.y = Math.atan2(d.x, d.z); g.userData.faceUser = null; }
+    if (!items.includes(g)) items.push(g);
+    ghost = null; ghostBackup = null; select(g); setHint('Postavljeno. Dodirnite predmet da ga izaberete.'); return;
+  }
+  const m = new THREE.Matrix4().extractRotation(ctrl.matrixWorld);
+  ray.ray.origin.setFromMatrixPosition(ctrl.matrixWorld); ray.ray.direction.set(0, 0, -1).applyMatrix4(m);
+  const it = pick(items); select(it);
+});
+
+renderer.xr.addEventListener('sessionstart', async () => {
+  const session = renderer.xr.getSession();
+  items.splice(0).forEach(i => scene.remove(i)); select(null);
+  room.visible = false; scene.background = null;
+  $('arStart').hidden = true; $('arEnd').hidden = false; $('clearRow').style.display = 'none';
+  setHint('Polako pomerajte telefon da se prepozna pod, pa izaberite proizvod.');
+  const viewer = await session.requestReferenceSpace('viewer');
+  hitSource = await session.requestHitTestSource({ space: viewer });
+  session.addEventListener('end', () => { hitSource = null; });
+});
+renderer.xr.addEventListener('sessionend', () => {
+  items.splice(0).forEach(i => scene.remove(i)); ghost = null; select(null);
+  room.visible = true; scene.background = new THREE.Color(0xefe9e1); reticle.visible = false;
+  $('arStart').hidden = false; $('arEnd').hidden = true; $('clearRow').style.display = ''; setHint('');
+});
+
+$('arStart').onclick = async () => {
+  try {
+    const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test'], optionalFeatures: ['dom-overlay'], domOverlay: { root: ui } });
+    renderer.xr.setReferenceSpaceType('local');
+    await renderer.xr.setSession(session);
+  } catch (err) { showNote('AR nije mogao da se pokrene: ' + err.message); }
+};
+$('arEnd').onclick = () => renderer.xr.getSession()?.end();
+
+function showNote(t) { const n = $('note'); n.textContent = t; n.classList.add('show'); }
+
+(async () => {
+  if (navigator.xr && await navigator.xr.isSessionSupported('immersive-ar').catch(() => false)) {
+    $('arStart').hidden = false;
+    setHint('Izaberite proizvode ispod ili pokrenite AR da ih postavite u svoju sobu.');
+  } else {
+    showNote('Postavljanje više komada u pravoj sobi radi u Chrome-u na Androidu (sa ARCore). Na ovom uređaju možete da aranžirate prostoriju u 3D pregledu, a pojedinačan AR je dostupan na stranici proizvoda.');
+  }
+})();
+
+// ---------- petlja ----------
+const tmp = new THREE.Box3();
+renderer.setAnimationLoop((t, frame) => {
+  if (frame && hitSource) {
+    const res = frame.getHitTestResults(hitSource);
+    if (res.length) {
+      const pose = res[0].getPose(renderer.xr.getReferenceSpace());
+      reticle.visible = true; reticle.matrix.fromArray(pose.transform.matrix);
+      if (ghost) { ghost.position.setFromMatrixPosition(reticle.matrix); ghost.visible = true; }
+    } else { reticle.visible = false; if (ghost) ghost.visible = false; }
+  }
+  if (selected && selected.visible) { tmp.setFromObject(selected.userData.model); selBox.box.copy(tmp); selBox.visible = true; } else selBox.visible = false;
+  if (!renderer.xr.isPresenting) controls.update();
+  renderer.render(scene, camera);
+});
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+refreshButtons();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+// Zajednička lista proizvoda (koristi je index.html i room.html)
+const products = [
+  {id:'duero', cat:'Komode', name:'Komoda DUERO 3K2F', price:'Cena u prodavnici', model:'models/duero.glb', animated:true, arModel:'models/duero_ar.glb', photo:'images/11008303.jpg', dims:'138 × 40 × 96 cm', desc:'Komoda sa troja vrata i dve fioke u dekoru hrasta.'},
+  {id:'tv', cat:'Komode', name:'TV komoda 160', price:'Cena u prodavnici', model:'models/tv_komoda.glb', animated:true, arModel:'models/tv_komoda_ar.glb', dims:'160 × 40 × 50 cm', desc:'Niska TV komoda sa dva zatvorena kanala i otvorenom policom u sredini.'},
+  {id:'nocni', cat:'Komode', name:'Noćni ormarić sa 2 fioke', price:'Cena u prodavnici', model:'models/nocni_ormaric.glb', animated:true, arModel:'models/nocni_ormaric_ar.glb', dims:'45 × 40 × 52 cm', desc:'Kompaktan ormarić pored kreveta sa dve fioke.'},
+  {id:'loalti', cat:'Sedenje', name:'Trosed LOALTI', price:'37.488 RSD', model:'models/loalti.glb', animated:true, arModel:'models/loalti_ar.glb', photo:'images/loalti.jpg', dims:'213 × 77 × 90 cm', url:'https://formaideale.rs/artikal/trosed-loalti', desc:'Trosed u kapućino štofu sa metalnim nogama. Naslon se spušta i trosed postaje ležaj.', openLabel:'Razvuci u ležaj'},
+  {id:'mohito', cat:'Stolovi', name:'Okrugli sto MOHITO fi100', price:'12.488 RSD', model:'models/mohito.glb', photo:'images/mohito.jpg', dims:'Ø 100 × 76 cm', url:'https://formaideale.rs/artikal/trpezarijski-sto-mohito-fi100', desc:'Okrugli trpezarijski sto: bela metalna konstrukcija i ploča u dekoru hrasta.'},
+  {id:'simple', cat:'Stolice', name:'Trpezarijska stolica SIMPLE', price:'7.487 RSD', model:'models/simple.glb', photo:'images/simple.jpg', dims:'44 × 51 × 100 cm', url:'https://formaideale.rs/artikal/trpezarijska-stolica-simple', desc:'Konzolna stolica sa visokim, prošivenim naslonom u bež štofu i metalnim postoljem.'},
+  {id:'sto', cat:'Stolovi', name:'Trpezarijski sto 80×80', price:'Cena u prodavnici', model:'models/sto_forma.glb', photo:'images/11008789.jpg', dims:'80 × 80 × 76 cm', desc:'Kvadratni trpezarijski sto u svetlom dekoru hrasta.'},
+  {id:'regal', cat:'Police', name:'Regal sa 6 polica', price:'Cena u prodavnici', model:'models/regal.glb', dims:'80 × 30 × 180 cm', desc:'Visok regal za knjige i dekoraciju.'},
+  {id:'nubia', cat:'Spavaća soba', name:'Krevet NUBIA 160', price:'Cena u prodavnici', model:'models/nubia.glb', photo:'images/11012351.jpg', dims:'za dušek 160 × 200 cm', desc:'Bračni krevet sa tapaciranim uzglavljem.'},
+];
