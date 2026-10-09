@@ -57,7 +57,7 @@ module.exports = {
       const cx = -xi + (k + 0.5) * pitch, h = hinges[k];
       const hx = cx + h * dw / 2;
       const pivot = node('vrata_' + (k + 1), { t: [cm(hx), cm((doorTop + doorBot) / 2), cm(zF)], r: [0, 0, 0, 1] });
-      pivot.anim = { path: 'rotation', to: qy(deg(-h * 105)), time: 1.4 };
+      pivot.anim = { path: 'rotation', to: qy(deg(h * 105)), time: 1.4 };
       const lx = -h * dw / 2;                 // centar vrata u odnosu na šarku
       // osnovna ploča (zadnji sloj) + tri uzdignuta polja sa 0.3 cm žlebom
       pivot.parts.push(B([lx, 0, 0.5], [dw, dh, 1.0]));
