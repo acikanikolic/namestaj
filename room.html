@@ -15,10 +15,10 @@
   #ui{position:fixed;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between}
   #ui > *{pointer-events:auto}
   .top{display:flex;gap:10px;align-items:center;padding:10px 12px;background:rgba(255,255,255,.92);border-bottom:1px solid var(--line)}
-  .top a{color:var(--ink);text-decoration:none;font-weight:700;font-family:Georgia,'Times New Roman',serif;font-size:1.6rem;line-height:1}.top a span{color:var(--accent)}
+  .top a.logo{color:var(--ink);text-decoration:none;font-weight:700;font-family:Georgia,'Times New Roman',serif;font-size:1.6rem;line-height:1}.top a.logo span{color:var(--accent)}
   .top .sp{flex:1}
-  .btn{background:var(--accent);color:#fff;border:0;padding:10px 16px;border-radius:999px;font-size:.95rem;font-weight:600;cursor:pointer}
-  .btn.ghost{background:#fff;color:var(--accent);border:2px solid var(--accent)}
+  .btn{background:var(--accent);color:#fff;border:2px solid var(--accent);padding:10px 16px;border-radius:999px;font-size:.95rem;font-weight:600;cursor:pointer;font-family:inherit}
+  .btn.ghost{background:#fff;color:var(--accent)}
   .btn.sm{padding:8px 12px;font-size:.85rem}
   .btn[hidden]{display:none}
   #hint{align-self:center;max-width:90%;background:rgba(30,20,10,.75);color:#fff;padding:8px 14px;border-radius:12px;font-size:.9rem;text-align:center;pointer-events:none}
@@ -28,19 +28,49 @@
   #sel.show{display:flex}
   #sel b{margin-right:auto;font-size:.95rem}
   #strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
-  .chip{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:12px;padding:8px 12px;font-size:.85rem;cursor:pointer;text-align:left;color:var(--ink)}
+  .chip{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:12px;padding:8px 12px;font-size:.85rem;cursor:pointer;text-align:left;color:var(--ink);font-family:inherit}
   .chip small{display:block;color:var(--muted)}
   .chip:active{background:#f1ece6}
+  .rowbtns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  #roomInfo{font-size:.82rem;color:var(--muted);margin-left:auto}
   #note{position:fixed;left:12px;right:12px;top:64px;background:#fff7e6;border:1px solid #f0d9a8;border-radius:12px;padding:10px 14px;font-size:.88rem;display:none;pointer-events:auto}
   #note.show{display:block}
-  .btn:focus-visible,.chip:focus-visible{outline:3px solid #222;outline-offset:2px}
+  .btn:focus-visible,.chip:focus-visible,input:focus-visible{outline:3px solid #222;outline-offset:2px}
+
+  /* uređivač oblika prostorije */
+  .ed{position:fixed;inset:0;background:rgba(30,20,10,.55);display:none;align-items:center;justify-content:center;z-index:20;padding:12px}
+  .ed.open{display:flex}
+  .edsheet{background:#fff;border-radius:18px;width:min(1000px,100%);max-height:96vh;display:flex;flex-direction:column;overflow:hidden}
+  .edhead{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
+  .edhead strong{font-size:1.1rem}
+  .x{width:38px;height:38px;border:0;border-radius:50%;background:#f2ece3;font-size:1.3rem;cursor:pointer}
+  .edbody{display:grid;grid-template-columns:1.25fr 1fr;gap:0;overflow:auto;flex:1}
+  .edplan{padding:12px;background:#faf6ef;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+  #plan{width:100%;height:min(56vh,440px);background:#fff;border:1px solid var(--line);border-radius:12px;touch-action:none;user-select:none}
+  #planInfo{font-size:.85rem;color:var(--muted)}
+  .edctl{padding:14px 16px;display:flex;flex-direction:column;gap:10px;overflow:auto}
+  .lbl{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-top:4px}
+  .presets{display:flex;gap:6px;flex-wrap:wrap}
+  .presets button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;font:inherit;font-size:.85rem;cursor:pointer}
+  .presets button:hover{border-color:var(--accent)}
+  .rectrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.9rem}
+  .edctl input[type=number]{width:84px;padding:8px 8px;border:1px solid var(--line);border-radius:10px;font:inherit}
+  .wr{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+  .wr span{flex:1;color:var(--muted)}
+  .wr button{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:1rem}
+  .wr button:disabled{opacity:.35;cursor:not-allowed}
+  #edMsg{min-height:1.3em;font-size:.88rem;color:#b00020}
+  .tip{font-size:.82rem;color:var(--muted)}
+  .edfoot{padding:10px 16px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
+  @media(max-width:720px){.edbody{grid-template-columns:1fr}.edplan{border-right:0;border-bottom:1px solid var(--line)}#plan{height:300px}}
 </style>
 </head>
 <body>
 <div id="ui">
   <div class="top">
-    <a href="index.html">Aki<span>.</span></a>
+    <a class="logo" href="index.html">Aki<span>.</span></a>
     <span class="sp"></span>
+    <button class="btn ghost sm" id="roomBtn">📐 Oblik sobe</button>
     <button class="btn" id="arStart" hidden>📱 Pokreni AR</button>
     <button class="btn ghost" id="arEnd" hidden>Izađi iz AR</button>
   </div>
@@ -55,24 +85,49 @@
       <button class="btn sm" id="del">🗑 Ukloni</button>
     </div>
     <div id="strip" role="list"></div>
-    <div id="clearRow"><button class="btn ghost sm" id="clear">Očisti prostoriju</button></div>
+    <div id="clearRow" class="rowbtns"><button class="btn ghost sm" id="clear">Očisti prostoriju</button><span id="roomInfo"></span></div>
   </div>
 </div>
 <div id="note"></div>
+
+<div class="ed" id="ed" role="dialog" aria-modal="true" aria-labelledby="edTitle">
+  <div class="edsheet">
+    <div class="edhead"><strong id="edTitle">Oblik i mere prostorije</strong><button class="x" id="edClose" aria-label="Zatvori">×</button></div>
+    <div class="edbody">
+      <div class="edplan">
+        <svg id="plan" aria-label="Plan prostorije"></svg>
+        <div id="planInfo"></div>
+        <div class="tip">Prevucite ćoškove da promenite oblik. Dodirnite <b>+</b> na zidu da dodate ćošak.</div>
+      </div>
+      <div class="edctl">
+        <div class="lbl">Gotovi oblici</div>
+        <div class="presets" id="presets"></div>
+        <div class="lbl">Pravougaona soba</div>
+        <div class="rectrow">Širina <input id="rw" type="number" min="30" max="5000" step="5" inputmode="numeric"> cm &nbsp;Dužina <input id="rd" type="number" min="30" max="5000" step="5" inputmode="numeric"> cm <button class="btn sm" id="rectApply">Primeni</button></div>
+        <div class="lbl">Zidovi (cm)</div>
+        <div id="walls"></div>
+        <div id="edMsg" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+    <div class="edfoot"><button class="btn" id="edDone">Gotovo</button></div>
+  </div>
+</div>
 
 <script src="products.js"></script>
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import * as G from './roomgeom.mjs';
 
 const $ = id => document.getElementById(id);
 const ui = $('ui'), hint = $('hint');
+const WALL_H = 2.6;
 
 // ---------- scena ----------
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xefe9e1);
-const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.05, 50);
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.05, 80);
 camera.position.set(3.6, 3.4, 4.8);
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -83,18 +138,48 @@ document.body.prepend(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xffffff, 0x8d8378, 1.6));
 const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(2, 4, 3); scene.add(sun);
 
-// pod za 3D pregled (u AR-u se sakriva)
-const room = new THREE.Group(); scene.add(room);
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(6, 5), new THREE.MeshStandardMaterial({ color: 0xe3d7c6, roughness: 1 }));
-floor.rotation.x = -Math.PI / 2; room.add(floor);
-const grid = new THREE.GridHelper(6, 12, 0xb8a98f, 0xcdbfa8); grid.position.y = 0.002; room.add(grid);
-
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 0.4, 0); controls.maxPolarAngle = Math.PI / 2.02; controls.update();
+controls.maxPolarAngle = Math.PI / 2.02;
 
 // reticle (AR)
 const reticle = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.16, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xb5532f }));
 reticle.matrixAutoUpdate = false; reticle.visible = false; scene.add(reticle);
+
+// ---------- prostorija (poligon ćoškova) ----------
+const KEY = 'aki.room.v1';
+let poly = G.rect(5, 4);
+const room = new THREE.Group(); scene.add(room);         // pod + zidovi (u AR-u se sakriva)
+
+const floorTex = (() => {                                // mreža: tanka linija na 25 cm, deblja na 1 m
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d'); g.fillStyle = '#e8dccb'; g.fillRect(0, 0, 256, 256);
+  g.strokeStyle = 'rgba(120,100,80,.18)'; g.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) { g.beginPath(); g.moveTo(i * 64, 0); g.lineTo(i * 64, 256); g.moveTo(0, i * 64); g.lineTo(256, i * 64); g.stroke(); }
+  g.strokeStyle = 'rgba(120,100,80,.5)'; g.lineWidth = 3; g.strokeRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; return t;
+})();
+const wallMat = new THREE.MeshBasicMaterial({ color: 0xcdbfae, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false });
+const baseMat = new THREE.MeshStandardMaterial({ color: 0x6b5a49, roughness: 0.8 });
+
+function buildRoom() {
+  room.children.slice().forEach(o => { o.geometry?.dispose(); room.remove(o); });
+  const shape = new THREE.Shape(poly.map(([x, z]) => new THREE.Vector2(x, -z)));
+  const fg = new THREE.ShapeGeometry(shape); fg.rotateX(-Math.PI / 2);
+  room.add(new THREE.Mesh(fg, new THREE.MeshStandardMaterial({ map: floorTex, roughness: 1 })));
+  poly.forEach((a, i) => {
+    const b = poly[(i + 1) % poly.length], L = G.wallLen(poly, i), ang = Math.atan2(b[1] - a[1], b[0] - a[0]), mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
+    const w = new THREE.Mesh(new THREE.PlaneGeometry(L, WALL_H), wallMat); w.rotation.y = -ang; w.position.set(mx, WALL_H / 2, mz); room.add(w);
+    const n = G.inwardNormal(poly, i);
+    const bs = new THREE.Mesh(new THREE.BoxGeometry(L, 0.1, 0.04), baseMat); bs.rotation.y = -ang; bs.position.set(mx + n[0] * 0.02, 0.05, mz + n[1] * 0.02); room.add(bs);
+  });
+}
+function fitCamera() {
+  const bb = G.bbox(poly), cx = (bb.minX + bb.maxX) / 2, cz = (bb.minZ + bb.maxZ) / 2, s = Math.max(bb.maxX - bb.minX, bb.maxZ - bb.minZ);
+  controls.target.set(cx, 0.4, cz);
+  camera.position.set(cx + s * 0.55, s * 0.75 + 1.4, cz + s * 0.95 + 1);
+  controls.update();
+}
+function roomInfo() { $('roomInfo').textContent = `${G.area(poly).toFixed(1).replace('.', ',')} m² · ${poly.length} ćoška`; }
 
 // ---------- predmeti ----------
 const loader = new GLTFLoader(), cache = new Map();
@@ -141,35 +226,41 @@ function refreshButtons() {
 }
 function setHint(t) { hint.textContent = t || ''; }
 
+// ---- smeštanje u prostoriju (3D pregled) ----
+const worldBox = item => new THREE.Box3().setFromObject(item.userData.model);
+function boxInside(b, inset = 0.02) {                      // sva četiri ugla otiska u poligonu
+  const x0 = b.min.x + inset, x1 = b.max.x - inset, z0 = b.min.z + inset, z1 = b.max.z - inset;
+  return [[x0, z0], [x1, z0], [x1, z1], [x0, z1], [(x0 + x1) / 2, (z0 + z1) / 2]].every(pt => G.pointInPoly(pt, poly));
+}
+function fitsInRoom(item) { item.updateMatrixWorld(true); return boxInside(worldBox(item)); }
+
+// prvo slobodno mesto u prostoriji (bez preklapanja i bez izlaska van zidova)
+function placeFree(item, skip) {
+  scene.updateMatrixWorld(true);
+  const own = worldBox(item), sz = own.getSize(new THREE.Vector3()), c = own.getCenter(new THREE.Vector3());
+  const others = items.filter(i => i !== item && i !== skip).map(i => worldBox(i).expandByScalar(0.05));
+  const hx = sz.x / 2, hz = sz.z / 2, bb = G.bbox(poly);
+  for (let z = bb.minZ + hz; z <= bb.maxZ - hz + 1e-6; z += 0.25) for (let x = bb.minX + hx; x <= bb.maxX - hx + 1e-6; x += 0.25) {
+    const b = new THREE.Box3(new THREE.Vector3(x - hx, 0, z - hz), new THREE.Vector3(x + hx, sz.y, z + hz));
+    if (boxInside(b) && !others.some(o => o.intersectsBox(b))) { item.position.set(x - c.x, 0, z - c.z); return true; }
+  }
+  const [cx, cz] = G.centroid(poly); item.position.set(cx - c.x, 0, cz - c.z); return false;
+}
+
 async function addProduct(p) {
   if (ghost) cancelGhost();
   const item = await makeItem(p);
   scene.add(item);
   if (renderer.xr.isPresenting) {
     ghost = item; ghostBackup = null; item.visible = false;
-    // okreni "licem" ka korisniku
-    const cam = renderer.xr.getCamera(); const cp = new THREE.Vector3().setFromMatrixPosition(cam.matrixWorld);
-    item.userData.faceUser = cp;
+    const cam = renderer.xr.getCamera(); item.userData.faceUser = new THREE.Vector3().setFromMatrixPosition(cam.matrixWorld);   // okreni "licem" ka korisniku
     select(item);
     setHint('Usmerite kameru ka podu, pa dodirnite da postavite.');
   } else {
-    placeFree(item);
-    items.push(item); select(item);
-    setHint('Prevucite predmet da ga pomerite. Dva prsta ili točkić za kameru.');
+    const ok = placeFree(item);
+    items.push(item); select(item); save();
+    setHint(ok ? 'Prevucite predmet da ga pomerite. Dva prsta ili točkić za kameru.' : 'Nema slobodnog mesta, komad je u sredini sobe. Pomerite ga ili povećajte sobu.');
   }
-}
-
-// u 3D pregledu: nađi prvo slobodno mesto u sobi (bez preklapanja sa postavljenim komadima)
-function placeFree(item) {
-  scene.updateMatrixWorld(true);
-  const own = new THREE.Box3().setFromObject(item.userData.model), sz = own.getSize(new THREE.Vector3()), c = own.getCenter(new THREE.Vector3());
-  const others = items.map(i => new THREE.Box3().setFromObject(i.userData.model).expandByScalar(0.05));
-  const hx = sz.x / 2, hz = sz.z / 2;
-  for (let z = -2.5 + hz; z <= 2.5 - hz + 1e-6; z += 0.25) for (let x = -3 + hx; x <= 3 - hx + 1e-6; x += 0.25) {
-    const b = new THREE.Box3(new THREE.Vector3(x - hx, 0, z - hz), new THREE.Vector3(x + hx, sz.y, z + hz));
-    if (!others.some(o => o.intersectsBox(b))) { item.position.set(x - c.x, 0, z - c.z); return; }
-  }
-  item.position.set(0, 0, 0);
 }
 
 function cancelGhost() {
@@ -178,18 +269,39 @@ function cancelGhost() {
   else { scene.remove(ghost); const i = items.indexOf(ghost); if (i >= 0) items.splice(i, 1); select(null); }
   ghost = null; ghostBackup = null; setHint(''); refreshButtons();
 }
-
 function removeSelected() {
   if (!selected) return;
   scene.remove(selected); const i = items.indexOf(selected); if (i >= 0) items.splice(i, 1);
-  select(null);
+  select(null); save();
+}
+
+// ---------- čuvanje u pregledaču ----------
+let saveT = 0;
+function save() {
+  clearTimeout(saveT);
+  saveT = setTimeout(() => {
+    if (renderer.xr.isPresenting) return;
+    try { localStorage.setItem(KEY, JSON.stringify({ poly, items: items.map(i => [i.userData.product.id, +i.position.x.toFixed(3), +i.position.z.toFixed(3), +i.rotation.y.toFixed(4)]) })); } catch (e) {}
+  }, 250);
+}
+async function restore() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (d && Array.isArray(d.poly) && G.validate(d.poly).ok) poly = d.poly;
+    buildRoom(); fitCamera(); roomInfo();
+    for (const [id, x, z, r] of (d && d.items) || []) {
+      const p = products.find(q => q.id === id); if (!p) continue;
+      const it = await makeItem(p); it.position.set(x, 0, z); it.rotation.y = r; scene.add(it); items.push(it);
+    }
+    if (items.length) setHint('Vraćen je vaš prethodni raspored.');
+  } catch (e) { buildRoom(); fitCamera(); roomInfo(); }
 }
 
 // ---------- UI ----------
 $('strip').innerHTML = products.map(p => `<button class="chip" role="listitem" data-id="${p.id}">${p.name}<small>${p.dims}</small></button>`).join('');
 $('strip').addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) addProduct(products.find(x => x.id === b.dataset.id)); });
-$('rotL').onclick = () => selected && (selected.rotation.y += Math.PI / 12);
-$('rotR').onclick = () => selected && (selected.rotation.y -= Math.PI / 12);
+$('rotL').onclick = () => { if (selected) { selected.rotation.y += Math.PI / 12; if (!renderer.xr.isPresenting && !fitsInRoom(selected)) selected.rotation.y -= Math.PI / 12; save(); } };
+$('rotR').onclick = () => { if (selected) { selected.rotation.y -= Math.PI / 12; if (!renderer.xr.isPresenting && !fitsInRoom(selected)) selected.rotation.y += Math.PI / 12; save(); } };
 $('del').onclick = removeSelected;
 $('cancel').onclick = cancelGhost;
 $('move').onclick = () => {
@@ -197,12 +309,11 @@ $('move').onclick = () => {
   ghost = selected; ghostBackup = { pos: selected.position.clone(), rot: selected.rotation.y };
   setHint('Dodirnite novo mesto na podu.'); refreshButtons();
 };
-$('clear').onclick = () => { cancelGhost(); items.splice(0).forEach(i => scene.remove(i)); select(null); setHint(''); };
-addEventListener('keydown', e => { if (e.key === 'Delete' || e.key === 'Backspace') removeSelected(); });
-// dodir na dugmad u AR-u ne sme da "postavi" predmet
-ui.addEventListener('beforexrselect', e => e.preventDefault());
+$('clear').onclick = () => { cancelGhost(); items.splice(0).forEach(i => scene.remove(i)); select(null); setHint(''); save(); };
+addEventListener('keydown', e => { if ((e.key === 'Delete' || e.key === 'Backspace') && !e.target.closest('input')) removeSelected(); if (e.key === 'Escape') closeEd(); });
+ui.addEventListener('beforexrselect', e => e.preventDefault());   // dodir na dugmad u AR-u ne sme da "postavi" predmet
 
-// ---------- 3D pregled: prevlačenje po podu ----------
+// ---------- 3D pregled: prevlačenje po podu (ostaje unutar zidova) ----------
 const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 let drag = null;
 const itemRoot = o => { while (o && !o.userData.isItem) o = o.parent; return o; };
@@ -221,12 +332,117 @@ renderer.domElement.addEventListener('pointerdown', e => {
 });
 renderer.domElement.addEventListener('pointermove', e => {
   if (!drag) return; setPtr(e); const pt = new THREE.Vector3();
-  if (ray.ray.intersectPlane(plane, pt)) { drag.it.position.x = THREE.MathUtils.clamp(pt.x + drag.off.x, -2.8, 2.8); drag.it.position.z = THREE.MathUtils.clamp(pt.z + drag.off.z, -2.3, 2.3); }
+  if (!ray.ray.intersectPlane(plane, pt)) return;
+  const it = drag.it, ox = it.position.x, oz = it.position.z, nx = pt.x + drag.off.x, nz = pt.z + drag.off.z;
+  for (const [x, z] of [[nx, nz], [nx, oz], [ox, nz]]) {     // ako ne može pravo, kliza duž zida
+    it.position.set(x, 0, z);
+    if (fitsInRoom(it)) return;
+  }
+  it.position.set(ox, 0, oz);
 });
-addEventListener('pointerup', () => { drag = null; controls.enabled = true; });
+addEventListener('pointerup', () => { if (drag) save(); drag = null; controls.enabled = true; });
+
+// ---------- uređivač oblika prostorije ----------
+const svg = $('plan'), NS = 'http://www.w3.org/2000/svg';
+let view = null, pdrag = -1, msgT = 0;
+const cmv = v => Math.round(v * 100);
+
+function applyRoom(opts = {}) {
+  buildRoom(); roomInfo(); if (opts.fit) fitCamera();
+  // komadi koji su ostali van zidova se vraćaju u prostoriju
+  let moved = 0; for (const it of items) { if (!fitsInRoom(it)) { placeFree(it); moved++; } }
+  if (moved) setHint(`${moved} ${moved === 1 ? 'komad je pomeren' : 'komada je pomereno'} da stane u novu prostoriju.`);
+  save();
+}
+function setView() {
+  const bb = G.bbox(poly), pad = Math.max(1.2, Math.max(bb.maxX - bb.minX, bb.maxZ - bb.minZ) * 0.18);
+  view = { x: bb.minX - pad, z: bb.minZ - pad, w: bb.maxX - bb.minX + 2 * pad, h: bb.maxZ - bb.minZ + 2 * pad };
+}
+function el(tag, attrs, text) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
+
+function drawPlan() {
+  if (!view) setView();
+  svg.setAttribute('viewBox', `${view.x} ${view.z} ${view.w} ${view.h}`);
+  svg.replaceChildren();
+  const u = Math.max(view.w, view.h) / 34;                     // jedinica za veličine ručki i teksta
+  // mreža na 1 m
+  for (let x = Math.ceil(view.x); x <= view.x + view.w; x++) svg.append(el('line', { x1: x, y1: view.z, x2: x, y2: view.z + view.h, stroke: x === 0 ? '#e4d8c8' : '#f0e8dc', 'stroke-width': u * 0.06 }));
+  for (let z = Math.ceil(view.z); z <= view.z + view.h; z++) svg.append(el('line', { x1: view.x, y1: z, x2: view.x + view.w, y2: z, stroke: z === 0 ? '#e4d8c8' : '#f0e8dc', 'stroke-width': u * 0.06 }));
+  svg.append(el('polygon', { points: poly.map(p => p.join(',')).join(' '), fill: '#f3e9db', stroke: '#6b5a49', 'stroke-width': u * 0.22, 'stroke-linejoin': 'round' }));
+  // komadi nameštaja (približni otisak)
+  for (const it of items) {
+    const b = worldBox(it); svg.append(el('rect', { x: b.min.x, y: b.min.z, width: b.max.x - b.min.x, height: b.max.z - b.min.z, fill: 'rgba(181,83,47,.18)', stroke: 'rgba(181,83,47,.5)', 'stroke-width': u * 0.07 }));
+  }
+  poly.forEach((a, i) => {
+    const b = poly[(i + 1) % poly.length], n = G.inwardNormal(poly, i), mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
+    const t = el('text', { x: mx + n[0] * u * 1.5, y: mz + n[1] * u * 1.5, 'font-size': u * 1.05, 'text-anchor': 'middle', 'dominant-baseline': 'middle', fill: '#2b2420', stroke: '#fff', 'stroke-width': u * 0.28, 'paint-order': 'stroke' }, cmv(G.wallLen(poly, i)));
+    svg.append(t);
+    const plus = el('g', { 'data-add': i, style: 'cursor:pointer' });
+    plus.append(el('circle', { cx: mx, cy: mz, r: u * 0.62, fill: '#fff', stroke: '#b5532f', 'stroke-width': u * 0.12 }));
+    plus.append(el('text', { x: mx, y: mz, 'font-size': u * 1.1, 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: '#b5532f', 'pointer-events': 'none' }, '+'));
+    svg.append(plus);
+  });
+  poly.forEach((p, i) => {
+    const g = el('g', { 'data-v': i, style: 'cursor:grab' });
+    g.append(el('circle', { cx: p[0], cy: p[1], r: u * 1.15, fill: 'transparent' }));          // veća zona dodira
+    g.append(el('circle', { cx: p[0], cy: p[1], r: u * 0.7, fill: '#b5532f', stroke: '#fff', 'stroke-width': u * 0.14 }));
+    g.append(el('text', { x: p[0], y: p[1], 'font-size': u * 0.85, 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: '#fff', 'pointer-events': 'none' }, i + 1));
+    svg.append(g);
+  });
+  $('planInfo').textContent = `Površina ${G.area(poly).toFixed(1).replace('.', ',')} m² · obim ${(G.perimeter(poly)).toFixed(1).replace('.', ',')} m`;
+}
+function drawWalls() {
+  const n = poly.length;
+  $('walls').innerHTML = poly.map((_, i) => `<div class="wr"><span>Zid ${i + 1} (ćošak ${i + 1} → ${(i + 1) % n + 1})</span><input type="number" data-len="${i}" min="30" max="5000" step="5" value="${cmv(G.wallLen(poly, i))}" aria-label="Dužina zida ${i + 1} u cm"><button data-add="${i}" title="Dodaj ćošak na sredini zida" aria-label="Dodaj ćošak na zidu ${i + 1}">+</button><button data-del="${i}" title="Ukloni ćošak ${i + 1}" aria-label="Ukloni ćošak ${i + 1}" ${n <= 3 ? 'disabled' : ''}>×</button></div>`).join('');
+  const bb = G.bbox(poly); $('rw').value = cmv(bb.maxX - bb.minX); $('rd').value = cmv(bb.maxZ - bb.minZ);
+}
+function refreshEd(refit) { if (refit) setView(); drawPlan(); drawWalls(); }
+function msg(t) { $('edMsg').textContent = t || ''; clearTimeout(msgT); if (t) msgT = setTimeout(() => $('edMsg').textContent = '', 4000); }
+function commit(q, opts = {}) {                                // proveri pa primeni novi oblik
+  const v = G.validate(q);
+  if (!v.ok) { msg(v.msg); return false; }
+  poly = q; msg(''); applyRoom({ fit: opts.fit !== false }); refreshEd(opts.refit !== false); return true;
+}
+
+$('presets').innerHTML = G.PRESETS.map((p, i) => `<button data-p="${i}">${p.name}</button>`).join('');
+$('presets').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b) commit(G.centered(G.PRESETS[+b.dataset.p].pts)); });
+$('rectApply').onclick = () => { const w = +$('rw').value / 100, d = +$('rd').value / 100; if (w > 0 && d > 0) commit(G.rect(w, d)); else msg('Unesite širinu i dužinu.'); };
+$('walls').addEventListener('change', e => {
+  const i = e.target.dataset.len; if (i == null) return;
+  const q = G.setWallLength(poly, +i, +e.target.value / 100);
+  if (!q || !commit(q)) e.target.value = cmv(G.wallLen(poly, +i));
+});
+function wallBtn(e) {
+  const a = e.target.closest('[data-add]'), d = e.target.closest('[data-del]');
+  if (a) commit(G.insertCorner(poly, +a.dataset.add));
+  if (d) { const q = G.removeCorner(poly, +d.dataset.del); if (q) commit(q); else msg('Prostorija mora imati bar 3 ćoška.'); }
+}
+$('walls').addEventListener('click', wallBtn);
+svg.addEventListener('click', e => { const a = e.target.closest('[data-add]'); if (a && pdrag < 0) commit(G.insertCorner(poly, +a.dataset.add)); });
+
+// prevlačenje ćoškova po planu (magnet 5 cm)
+const svgPt = e => { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; const m = p.matrixTransform(svg.getScreenCTM().inverse()); return [m.x, m.y]; };
+svg.addEventListener('pointerdown', e => {
+  const v = e.target.closest('[data-v]'); if (!v) return;
+  pdrag = +v.dataset.v; svg.setPointerCapture(e.pointerId); e.preventDefault();
+});
+svg.addEventListener('pointermove', e => {
+  if (pdrag < 0) return;
+  const [x, z] = svgPt(e), q = poly.map(p => p.slice()); q[pdrag] = [G.snap(x), G.snap(z)];
+  const v = G.validate(q);
+  if (!v.ok) { msg(v.msg); return; }
+  poly = q; msg(''); buildRoom(); roomInfo(); drawPlan(); drawWalls();
+});
+const endDrag = e => { if (pdrag < 0) return; pdrag = -1; applyRoom({ fit: true }); refreshEd(true); };
+svg.addEventListener('pointerup', endDrag); svg.addEventListener('pointercancel', endDrag);
+
+function openEd() { $('ed').classList.add('open'); refreshEd(true); $('edClose').focus(); }
+function closeEd() { $('ed').classList.remove('open'); }
+$('roomBtn').onclick = openEd; $('edClose').onclick = $('edDone').onclick = closeEd;
+$('ed').addEventListener('click', e => { if (e.target === $('ed')) closeEd(); });
 
 // ---------- AR ----------
-let hitSource = null, hitRequested = false;
+let hitSource = null;
 const ctrl = renderer.xr.getController(0); scene.add(ctrl);
 ctrl.addEventListener('select', () => {
   if (ghost) {
@@ -246,16 +462,17 @@ renderer.xr.addEventListener('sessionstart', async () => {
   const session = renderer.xr.getSession();
   items.splice(0).forEach(i => scene.remove(i)); select(null);
   room.visible = false; scene.background = null;
-  $('arStart').hidden = true; $('arEnd').hidden = false; $('clearRow').style.display = 'none';
+  $('arStart').hidden = true; $('arEnd').hidden = false; $('clearRow').style.display = 'none'; $('roomBtn').hidden = true;
   setHint('Polako pomerajte telefon da se prepozna pod, pa izaberite proizvod.');
   const viewer = await session.requestReferenceSpace('viewer');
   hitSource = await session.requestHitTestSource({ space: viewer });
   session.addEventListener('end', () => { hitSource = null; });
 });
-renderer.xr.addEventListener('sessionend', () => {
+renderer.xr.addEventListener('sessionend', async () => {
   items.splice(0).forEach(i => scene.remove(i)); ghost = null; select(null);
   room.visible = true; scene.background = new THREE.Color(0xefe9e1); reticle.visible = false;
-  $('arStart').hidden = false; $('arEnd').hidden = true; $('clearRow').style.display = ''; setHint('');
+  $('arStart').hidden = false; $('arEnd').hidden = true; $('clearRow').style.display = ''; $('roomBtn').hidden = false; setHint('');
+  await restore();                                           // vrati raspored iz 3D pregleda
 });
 
 $('arStart').onclick = async () => {
@@ -272,9 +489,9 @@ function showNote(t) { const n = $('note'); n.textContent = t; n.classList.add('
 (async () => {
   if (navigator.xr && await navigator.xr.isSessionSupported('immersive-ar').catch(() => false)) {
     $('arStart').hidden = false;
-    setHint('Izaberite proizvode ispod ili pokrenite AR da ih postavite u svoju sobu.');
+    setHint('Podesite oblik sobe, izaberite proizvode ispod ili pokrenite AR da ih postavite u pravoj sobi.');
   } else {
-    showNote('Postavljanje više komada u pravoj sobi radi u Chrome-u na Androidu (sa ARCore). Na ovom uređaju možete da aranžirate prostoriju u 3D pregledu, a pojedinačan AR je dostupan na stranici proizvoda.');
+    showNote('Postavljanje više komada u pravoj sobi radi u Chrome-u na Androidu (sa ARCore). Na ovom uređaju možete da napravite sobu tačnih mera i da aranžirate nameštaj u 3D pregledu.');
   }
 })();
 
@@ -295,6 +512,7 @@ renderer.setAnimationLoop((t, frame) => {
 });
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
 refreshButtons();
+restore();
 </script>
 </body>
 </html>

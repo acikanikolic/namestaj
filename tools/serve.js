@@ -1,6 +1,6 @@
 // Lokalni server za testiranje: node tools/serve.js  ->  http://localhost:8765
 const h = require('http'), f = require('fs'), p = require('path');
-const T = { '.html': 'text/html; charset=utf-8', '.glb': 'model/gltf-binary', '.jpg': 'image/jpeg' };
+const T = { '.mjs': 'text/javascript', '.js': 'text/javascript', '.json': 'application/json', '.html': 'text/html; charset=utf-8', '.glb': 'model/gltf-binary', '.jpg': 'image/jpeg' };
 const root = p.join(__dirname, '..');
 h.createServer((q, r) => {
   let u = decodeURI(q.url.split('?')[0]); if (u === '/') u = '/index.html';
