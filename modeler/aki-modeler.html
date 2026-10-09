@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aki Modeler – 3D model iz fotografija i dimenzija</title>
+<!--
+  Aki Modeler: potpuno samostalna aplikacija (jedan HTML fajl). Radi bez interneta i bez ikakvih spoljnih biblioteka ili API-ja.
+  Ulaz: fotografije (prednja / bočna / gornja / zadnja) i dimenzije. Izlaz: 3D mreža (GLB) sa fotografijama kao teksturom.
+  Metoda: iz siluete na fotografijama (jednobojna pozadina) pravi se vizuelna ovojnica (visual hull) u voxelima, površina se spaja
+  u mrežu (greedy meshing), a fotografije se projektuju kao tekstura na odgovarajuće strane.
+-->
+<style>
+  :root{--bg:#f6f2ec;--ink:#241f1b;--muted:#7a6e63;--accent:#b5532f;--line:#e5dacb;--card:#fff}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  .app{display:grid;grid-template-columns:minmax(330px,430px) 1fr;height:100vh}
+  aside{overflow:auto;padding:16px;border-right:1px solid var(--line);background:#fffdf9}
+  h1{font-family:Georgia,serif;font-size:1.4rem;margin:0 0 2px}h1 i{color:var(--accent);font-style:normal}
+  .sub{color:var(--muted);font-size:.85rem;margin:0 0 14px}
+  h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px}
+  label{display:block;font-size:.85rem;margin:6px 0 2px;color:var(--muted)}
+  input[type=text],input[type=number],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;background:#fff}
+  .dims{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .slot{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px;background:var(--card)}
+  .slot.drag{border-color:var(--accent);background:#fff6f0}
+  .slot header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .slot strong{font-size:.92rem}.slot small{color:var(--muted)}
+  .thumb{margin-top:8px;display:none;gap:10px;align-items:flex-start}
+  .thumb.on{display:flex}
+  .thumb canvas{width:96px;height:96px;object-fit:contain;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 0 0/12px 12px;border:1px solid var(--line);border-radius:8px}
+  .opts{flex:1;font-size:.8rem;color:var(--muted)}
+  .opts input[type=range]{width:100%}
+  .opts label{margin:2px 0;font-size:.8rem;display:flex;align-items:center;gap:6px}
+  .btn{background:var(--accent);color:#fff;border:2px solid var(--accent);padding:9px 16px;border-radius:999px;font:inherit;font-weight:600;cursor:pointer}
+  .btn.ghost{background:#fff;color:var(--accent)}.btn.sm{padding:5px 12px;font-size:.82rem}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .stat{font-size:.85rem;color:var(--muted);margin-top:8px;line-height:1.5}
+  .err{color:#b00020;font-size:.88rem;margin-top:8px}
+  main{position:relative;background:linear-gradient(#fbf8f3,#ece5da);min-width:0}
+  canvas#gl{width:100%;height:100%;display:block;touch-action:none}
+  .hud{position:absolute;left:12px;top:12px;background:rgba(255,255,255,.85);padding:6px 10px;border-radius:10px;font-size:.85rem;border:1px solid var(--line)}
+  .tools{position:absolute;right:12px;top:12px;display:flex;gap:6px}
+  .empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);text-align:center;padding:30px;pointer-events:none}
+  details{margin-top:12px;font-size:.85rem;color:var(--muted)}
+  [hidden]{display:none!important}
+  @media(max-width:860px){.app{grid-template-columns:1fr;grid-template-rows:auto 56vh;height:auto}main{height:56vh}aside{border-right:0;border-bottom:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside>
+  <h1>Aki<i>.</i> Modeler</h1>
+  <p class="sub">Fotografije + dimenzije → 3D model. Radi potpuno offline, ništa se ne šalje na internet.</p>
+
+  <h2>1 · Proizvod i dimenzije (cm)</h2>
+  <label for="name">Naziv</label><input id="name" type="text" value="Proizvod">
+  <div class="dims">
+    <div><label for="W">Širina</label><input id="W" type="number" min="1" step="0.5" value="100"></div>
+    <div><label for="D">Dubina</label><input id="D" type="number" min="1" step="0.5" value="50"></div>
+    <div><label for="H">Visina</label><input id="H" type="number" min="1" step="0.5" value="80"></div>
+  </div>
+
+  <h2>2 · Fotografije</h2>
+  <p class="sub">Najbolje rade pravi snimci spreda, sa strane i odozgo na jednobojnoj (belo/svetlo) pozadini. Dovoljna je i samo prednja slika. Prevucite sliku na polje ili kliknite „Izaberi“.</p>
+  <div id="slots"></div>
+
+  <h2>3 · Kvalitet mreže</h2>
+  <label for="cell">Veličina voxela</label>
+  <select id="cell"><option value="3">Vrlo fino (~1/300)</option><option value="2" selected>Fino (~1/200)</option><option value="1">Srednje (~1/120)</option><option value="0">Grubo (~1/64)</option></select>
+  <label for="color">Boja strana bez fotografije</label><input id="color" type="color" value="#bfae9a" style="width:60px;height:34px;padding:2px">
+
+  <div class="row" style="margin-top:16px">
+    <button class="btn" id="build">Napravi model</button>
+    <button class="btn ghost" id="dl" disabled>Preuzmi GLB</button>
+  </div>
+  <div class="err" id="err" role="alert"></div>
+  <div class="stat" id="stat"></div>
+
+  <details><summary>Projekat i uputstvo</summary>
+    <div class="row" style="margin:8px 0"><button class="btn ghost sm" id="saveProj">Sačuvaj projekat</button><button class="btn ghost sm" id="loadProj">Otvori projekat</button><input type="file" id="projFile" accept=".json" hidden></div>
+    <p><b>Kako radi:</b> pozadina se prepozna po boji ivice slike (klizač „Osetljivost pozadine“). Siluete prednje, bočne i gornje slike se presecaju u 3D prostoru dimenzija koje ste uneli. Ploče i volumen dobijaju oblik iz siluete, a detalji sa fotografije (vrata, fioke, ručke, dekor) dolaze preko teksture.</p>
+    <p><b>Ograničenja:</b> unutrašnjost i udubljenja koja se ne vide u siluetama (npr. fioke, niše) ne mogu da se rekonstruišu iz oblika, nego su samo naslikana na teksturi. Perspektivne snimke (pod uglom) daju lošiju siluetu.</p>
+    <p>Model je u metrima, Y gore, prednja strana je +Z, ishodište je u sredini poda. Odmah je spreman za dizajner sobe na sajtu.</p>
+  </details>
+</aside>
+<main>
+  <canvas id="gl"></canvas>
+  <div class="hud" id="hud" hidden></div>
+  <div class="tools" id="tools" hidden>
+    <button class="btn ghost sm" id="wire">Mreža</button>
+    <button class="btn ghost sm" id="reset">Resetuj pogled</button>
+  </div>
+  <div class="empty" id="empty"><div><b>Nema modela</b><br>Dodajte bar prednju fotografiju i unesite dimenzije,<br>pa kliknite „Napravi model“.</div></div>
+</main>
+</div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+
+/* =====================================================================
+   1. FOTOGRAFIJE → SILUETA (maska) + TEKSTURA
+   ===================================================================== */
+const SLOTS = [
+  { key: 'front', title: 'Prednja strana', hint: 'obavezna, snimak spreda' },
+  { key: 'side',  title: 'Bočna strana',   hint: 'snimak sa strane (opciono)' },
+  { key: 'top',   title: 'Gornja strana',  hint: 'snimak odozgo (opciono)' },
+  { key: 'back',  title: 'Zadnja strana',  hint: 'snimak otpozadi (opciono, samo tekstura)' },
+];
+const photos = {};          // key -> { name, src, img, thr, holes, flip, frontLeft, frontBottom, crop:{canvas,w,h}, mask:Uint8Array }
+
+function buildSlotsUI() {
+  $('slots').innerHTML = SLOTS.map(s => `
+  <div class="slot" data-k="${s.key}">
+    <header><div><strong>${s.title}</strong><br><small>${s.hint}</small></div>
+      <div class="row"><button class="btn ghost sm" data-pick>Izaberi</button><button class="btn ghost sm" data-clear hidden>×</button></div></header>
+    <input type="file" accept="image/*" hidden>
+    <div class="thumb"><canvas width="96" height="96"></canvas>
+      <div class="opts">
+        <label>Osetljivost pozadine: <b data-thrv>28</b><input type="range" min="2" max="90" value="28" data-thr></label>
+        <label><input type="checkbox" data-holes> Providne rupe (pozadina i unutra)</label>
+        <label><input type="checkbox" data-flip> Okreni levo-desno</label>
+        ${s.key === 'side' ? '<label>Prednja strana je na slici: <select data-fl><option value="1">levo (desna strana)</option><option value="0">desno (leva strana)</option></select></label>' : ''}
+        ${s.key === 'top' ? '<label>Prednja strana je na slici: <select data-fb><option value="1">dole</option><option value="0">gore</option></select></label>' : ''}
+        <div data-info></div>
+      </div></div>
+  </div>`).join('');
+  for (const el of document.querySelectorAll('.slot')) {
+    const k = el.dataset.k, file = el.querySelector('input[type=file]');
+    el.querySelector('[data-pick]').onclick = () => file.click();
+    el.querySelector('[data-clear]').onclick = () => { delete photos[k]; refreshSlot(k); };
+    file.onchange = () => file.files[0] && setPhotoFile(k, file.files[0]);
+    el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('drag'); });
+    el.addEventListener('dragleave', () => el.classList.remove('drag'));
+    el.addEventListener('drop', e => { e.preventDefault(); el.classList.remove('drag'); const f = e.dataTransfer.files[0]; if (f && f.type.startsWith('image/')) setPhotoFile(k, f); });
+    const on = (sel, ev, fn) => { const n = el.querySelector(sel); if (n) n.addEventListener(ev, fn); };
+    on('[data-thr]', 'input', e => { const p = photos[k]; if (!p) return; p.thr = +e.target.value; el.querySelector('[data-thrv]').textContent = p.thr; processPhoto(k); });
+    on('[data-holes]', 'change', e => { const p = photos[k]; if (p) { p.holes = e.target.checked; processPhoto(k); } });
+    on('[data-flip]', 'change', e => { const p = photos[k]; if (p) { p.flip = e.target.checked; processPhoto(k); } });
+    on('[data-fl]', 'change', e => { const p = photos[k]; if (p) { p.frontLeft = e.target.value === '1'; scheduleBuild(); } });
+    on('[data-fb]', 'change', e => { const p = photos[k]; if (p) { p.frontBottom = e.target.value === '1'; scheduleBuild(); } });
+  }
+}
+
+function readFileAsDataURL(f) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); }); }
+async function setPhotoFile(k, file) { await setPhotoSrc(k, await readFileAsDataURL(file), file.name); }
+async function setPhotoSrc(k, src, name, opts = {}) {
+  const img = new Image(); img.src = src;
+  try { await img.decode(); } catch (e) { fail('Slika se ne može učitati: ' + (name || '')); return; }
+  photos[k] = Object.assign({ name: name || k, src, img, thr: 28, holes: undefined, flip: false, frontLeft: true, frontBottom: true }, opts);
+  processPhoto(k);
+}
+
+function processPhoto(k) {
+  const p = photos[k]; if (!p) return refreshSlot(k);
+  const MAXS = 1400, sc = Math.min(1, MAXS / Math.max(p.img.naturalWidth, p.img.naturalHeight));
+  const w = Math.max(2, Math.round(p.img.naturalWidth * sc)), h = Math.max(2, Math.round(p.img.naturalHeight * sc));
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(p.img, 0, 0, w, h);
+  const d = cx.getImageData(0, 0, w, h).data, n = w * h;
+  let hasAlpha = false; for (let i = 3; i < d.length; i += 4) if (d[i] < 250) { hasAlpha = true; break; }
+  let fg = new Uint8Array(n);
+  if (hasAlpha) { for (let i = 0; i < n; i++) fg[i] = d[i * 4 + 3] > 128 ? 1 : 0; }
+  else {
+    // boja pozadine = prosek piksela sa ivice slike
+    let r = 0, g = 0, b = 0, c = 0; const add = i => { r += d[i * 4]; g += d[i * 4 + 1]; b += d[i * 4 + 2]; c++; };
+    for (let x = 0; x < w; x++) { add(x); add((h - 1) * w + x); } for (let y = 0; y < h; y++) { add(y * w); add(y * w + w - 1); }
+    r /= c; g /= c; b /= c;
+    const like = new Uint8Array(n);
+    for (let i = 0; i < n; i++) like[i] = Math.max(Math.abs(d[i * 4] - r), Math.abs(d[i * 4 + 1] - g), Math.abs(d[i * 4 + 2] - b)) <= p.thr ? 1 : 0;
+    // pozadina povezana sa ivicom slike
+    const bg = new Uint8Array(n), q = new Int32Array(n); let qh = 0, qt = 0;
+    const seed = i => { if (like[i] && !bg[i]) { bg[i] = 1; q[qt++] = i; } };
+    for (let x = 0; x < w; x++) { seed(x); seed((h - 1) * w + x); } for (let y = 0; y < h; y++) { seed(y * w); seed(y * w + w - 1); }
+    while (qh < qt) { const i = q[qh++], x = i % w, y = (i / w) | 0; if (x > 0) seed(i - 1); if (x < w - 1) seed(i + 1); if (y > 0) seed(i - w); if (y < h - 1) seed(i + w); }
+    if (p.holes === undefined) {                           // automatski: da li su zatvorene svetle površine rupe (noge stolice) ili sam proizvod (beli front)
+      let encl = 0, tot = 0; for (let i = 0; i < n; i++) if (!bg[i]) { tot++; if (like[i]) encl++; }
+      p.holes = tot > 0 && encl / tot > 0.002 && encl / tot < 0.5;
+    }
+    if (p.holes) { for (let i = 0; i < n; i++) fg[i] = like[i] ? 0 : 1; }
+    else { for (let i = 0; i < n; i++) fg[i] = bg[i] ? 0 : 1; }
+  }
+  // samo najveći povezani deo (uklanja senke/prašinu)
+  { const lab = new Int32Array(n), q = new Int32Array(n); let best = 0, bestId = 0, id = 0;
+    for (let s = 0; s < n; s++) if (fg[s] && !lab[s]) {
+      id++; let qh = 0, qt = 0; q[qt++] = s; lab[s] = id;
+      while (qh < qt) { const i = q[qh++], x = i % w, y = (i / w) | 0;
+        if (x > 0 && fg[i - 1] && !lab[i - 1]) { lab[i - 1] = id; q[qt++] = i - 1; }
+        if (x < w - 1 && fg[i + 1] && !lab[i + 1]) { lab[i + 1] = id; q[qt++] = i + 1; }
+        if (y > 0 && fg[i - w] && !lab[i - w]) { lab[i - w] = id; q[qt++] = i - w; }
+        if (y < h - 1 && fg[i + w] && !lab[i + w]) { lab[i + w] = id; q[qt++] = i + w; } }
+      if (qt > best) { best = qt; bestId = id; } }
+    for (let i = 0; i < n; i++) fg[i] = lab[i] === bestId && bestId ? 1 : 0; }
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (fg[y * w + x]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) { p.crop = null; p.mask = null; p.info = 'Nije pronađen proizvod. Podesite osetljivost.'; return refreshSlot(k); }
+  const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+  const crop = document.createElement('canvas'); crop.width = bw; crop.height = bh;
+  const cc = crop.getContext('2d'); if (p.flip) { cc.translate(bw, 0); cc.scale(-1, 1); }
+  cc.drawImage(cv, x0, y0, bw, bh, 0, 0, bw, bh);
+  let mask = new Uint8Array(bw * bh);
+  for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) mask[y * bw + (p.flip ? bw - 1 - x : x)] = fg[(y + y0) * w + x + x0];
+  // erozija za 1 px (smanjuje svetli rub od pozadine); van isečka se računa kao puno
+  const m2 = new Uint8Array(bw * bh);
+  for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
+    const i = y * bw + x; if (!mask[i]) continue;
+    const L = x > 0 ? mask[i - 1] : 1, R = x < bw - 1 ? mask[i + 1] : 1, U = y > 0 ? mask[i - bw] : 1, Dn = y < bh - 1 ? mask[i + bw] : 1;
+    m2[i] = L && R && U && Dn ? 1 : 0;
+  }
+  // prosečna boja siluete
+  let ar = 0, ag = 0, ab = 0, ac = 0; const cd = cc.getImageData(0, 0, bw, bh).data;
+  for (let i = 0; i < bw * bh; i += 3) if (m2[i]) { ar += cd[i * 4]; ag += cd[i * 4 + 1]; ab += cd[i * 4 + 2]; ac++; }
+  p.crop = { canvas: crop, w: bw, h: bh }; p.mask = m2; p.avg = ac ? [ar / ac, ag / ac, ab / ac] : [190, 175, 155];
+  p.info = `${bw}×${bh} px, odnos ${(bw / bh).toFixed(2)}`;
+  refreshSlot(k); scheduleBuild();
+}
+
+function refreshSlot(k) {
+  const el = document.querySelector(`.slot[data-k="${k}"]`), p = photos[k];
+  el.querySelector('.thumb').classList.toggle('on', !!p);
+  el.querySelector('[data-clear]').hidden = !p;
+  el.querySelector('[data-pick]').textContent = p ? 'Zameni' : 'Izaberi';
+  if (!p) { scheduleBuild(); return; }
+  el.querySelector('[data-info]').textContent = p.info || '';
+  el.querySelector('[data-holes]').checked = !!p.holes; el.querySelector('[data-flip]').checked = !!p.flip;
+  el.querySelector('[data-thr]').value = p.thr; el.querySelector('[data-thrv]').textContent = p.thr;
+  const t = el.querySelector('canvas'), g = t.getContext('2d'); g.clearRect(0, 0, 96, 96);
+  if (!p.crop) return;
+  const s = Math.min(96 / p.crop.w, 96 / p.crop.h), dw = p.crop.w * s, dh = p.crop.h * s, ox = (96 - dw) / 2, oy = (96 - dh) / 2;
+  g.drawImage(p.crop.canvas, ox, oy, dw, dh);
+  // pozadina (van siluete) se boji ljubičasto
+  const tmp = document.createElement('canvas'); tmp.width = Math.ceil(dw); tmp.height = Math.ceil(dh);
+  const tg = tmp.getContext('2d'), id = tg.createImageData(tmp.width, tmp.height);
+  for (let y = 0; y < tmp.height; y++) for (let x = 0; x < tmp.width; x++) { const mx = Math.min(p.crop.w - 1, (x / s) | 0), my = Math.min(p.crop.h - 1, (y / s) | 0); if (!p.mask[my * p.crop.w + mx]) { const o = (y * tmp.width + x) * 4; id.data[o] = 200; id.data[o + 1] = 0; id.data[o + 2] = 160; id.data[o + 3] = 120; } }
+  tg.putImageData(id, 0, 0); g.drawImage(tmp, ox, oy);
+}
+
+/* =====================================================================
+   2. VOXEL OVOJNICA + MREŽA (greedy meshing)
+   ===================================================================== */
+const sampleMask = (p, u, v) => { const x = Math.min(p.crop.w - 1, Math.max(0, (u * p.crop.w) | 0)), y = Math.min(p.crop.h - 1, Math.max(0, (v * p.crop.h) | 0)); return p.mask[y * p.crop.w + x]; };
+
+function gridSize(W, D, H, quality) {
+  const div = [64, 120, 200, 300][quality], cell = Math.max(W, D, H) / div;
+  let nx = Math.max(2, Math.round(W / cell)), ny = Math.max(2, Math.round(H / cell)), nz = Math.max(2, Math.round(D / cell));
+  while (nx * ny * nz > 45e6) { nx = Math.round(nx * .9); ny = Math.round(ny * .9); nz = Math.round(nz * .9); }
+  return [nx, ny, nz];
+}
+
+function voxelize(P, Nx, Ny, Nz) {
+  const f = P.front, s = P.side, t = P.top;
+  const fm = f ? new Uint8Array(Nx * Ny) : null, sm = s ? new Uint8Array(Nz * Ny) : null, tm = t ? new Uint8Array(Nx * Nz) : null;
+  for (let j = 0; j < Ny; j++) {
+    const v = 1 - (j + .5) / Ny;
+    if (f) for (let i = 0; i < Nx; i++) fm[j * Nx + i] = sampleMask(f, (i + .5) / Nx, v);
+    if (s) for (let k = 0; k < Nz; k++) { const zn = (k + .5) / Nz; sm[j * Nz + k] = sampleMask(s, s.frontLeft ? 1 - zn : zn, v); }
+  }
+  if (t) for (let k = 0; k < Nz; k++) { const zn = (k + .5) / Nz, v = t.frontBottom ? zn : 1 - zn; for (let i = 0; i < Nx; i++) tm[k * Nx + i] = sampleMask(t, (i + .5) / Nx, v); }
+  const vox = new Uint8Array(Nx * Ny * Nz);
+  for (let k = 0; k < Nz; k++) for (let j = 0; j < Ny; j++) { const base = (k * Ny + j) * Nx; const sv = sm ? sm[j * Nz + k] : 1; if (!sv) continue;
+    for (let i = 0; i < Nx; i++) vox[base + i] = (fm ? fm[j * Nx + i] : 1) & (tm ? tm[k * Nx + i] : 1); }
+  return vox;
+}
+
+// greedy meshing: za svaki smer spaja susedne istovetne strane u veće pravougaonike
+function meshVoxels(vox, N, W, D, H, texOf, colorOf, flags) {
+  const [Nx, Ny, Nz] = N, sx = W / Nx, sy = H / Ny, sz = D / Nz;
+  // za svaki voxel: koje strane su izložene (bit 0..5 = +X,-X,+Y,-Y,+Z,-Z) – jedan prolaz kroz zapreminu
+  const fl = new Uint8Array(vox.length);
+  for (let k = 0, id = 0; k < Nz; k++) for (let j = 0; j < Ny; j++) for (let i = 0; i < Nx; i++, id++) {
+    if (!vox[id]) continue;
+    let f = 0;
+    if (i === Nx - 1 || !vox[id + 1]) f |= 1; if (i === 0 || !vox[id - 1]) f |= 2;
+    if (j === Ny - 1 || !vox[id + Nx]) f |= 4; if (j === 0 || !vox[id - Nx]) f |= 8;
+    if (k === Nz - 1 || !vox[id + Nx * Ny]) f |= 16; if (k === 0 || !vox[id - Nx * Ny]) f |= 32;
+    fl[id] = f;
+  }
+  const groups = new Map(); let quads = 0;
+  const grp = key => { let g = groups.get(key); if (!g) groups.set(key, g = { key, pos: [], nor: [], uv: [], idx: [], quads: [] }); return g; };
+  // projekcije teksture: svaka fotografija se ortogonalno projektuje na ravan iz koje je snimljena
+  const zn = z => (z + D / 2) / D, xn = x => (x + W / 2) / W;
+  const uvFront = (x, y) => [xn(x), 1 - y / H], uvBack = (x, y) => [1 - xn(x), 1 - y / H];
+  const uvSideR = (x, y, z) => [flags.frontLeft ? 1 - zn(z) : zn(z), 1 - y / H], uvSideL = (x, y, z) => [flags.frontLeft ? zn(z) : 1 - zn(z), 1 - y / H];
+  const uvTop = (x, y, z) => [xn(x), flags.frontBottom ? zn(z) : 1 - zn(z)];
+  // za svaki smer: redosled izvora; strana bez sopstvene fotografije dobija najbližu dostupnu (projekcija se „razvlači“ preko dubine)
+  const cand = [
+    [['side', uvSideR], ['front', uvFront], ['top', uvTop]],      // +X
+    [['side', uvSideL], ['front', uvFront], ['top', uvTop]],      // -X
+    [['top', uvTop], ['front', uvFront], ['side', uvSideR]],      // +Y
+    [],                                                           // -Y (boja)
+    [['front', uvFront], ['side', uvSideR], ['top', uvTop]],      // +Z
+    [['back', uvBack]],                                           // -Z
+  ];
+  const stride = [1, Nx, Nx * Ny], dims = [Nx, Ny, Nz], at = (a, d, u, v) => { const c = [0, 0, 0]; c[a] = d; c[(a + 1) % 3] = u; c[(a + 2) % 3] = v; return c; };
+  for (let a = 0; a < 3; a++) for (const sgn of [1, -1]) {
+    const dirIdx = a * 2 + (sgn > 0 ? 0 : 1), ua = (a + 1) % 3, va = (a + 2) % 3, NU = dims[ua], NV = dims[va];
+    const pick = cand[dirIdx].find(c => texOf[c[0]]), key = pick ? pick[0] : 'color', uvf = pick ? pick[1] : () => [0, 0];
+    const g = grp(key), nor = [0, 0, 0]; nor[a] = sgn;
+    const mask = new Uint8Array(NU * NV);
+    for (let d = 0; d < dims[a]; d++) {
+      let any = false;
+      const stA = stride[a], stU = stride[ua], stV = stride[va];
+      for (let v = 0; v < NV; v++) for (let u = 0; u < NU; u++) {
+        const idx = d * stA + u * stU + v * stV;
+        const m = (fl[idx] >> dirIdx) & 1; mask[v * NU + u] = m; if (m) any = true;
+      }
+      if (!any) continue;
+      for (let v = 0; v < NV; v++) for (let u = 0; u < NU; u++) {
+        if (!mask[v * NU + u]) continue;
+        let w = 1; while (u + w < NU && mask[v * NU + u + w]) w++;
+        let h = 1; outer: while (v + h < NV) { for (let q = 0; q < w; q++) if (!mask[(v + h) * NU + u + q]) break outer; h++; }
+        for (let hh = 0; hh < h; hh++) for (let ww = 0; ww < w; ww++) mask[(v + hh) * NU + u + ww] = 0;
+        const plane = sgn > 0 ? d + 1 : d;
+        const corners = [[u, v], [u + w, v], [u + w, v + h], [u, v + h]].map(([cu, cv]) => at(a, plane, cu, cv));
+        let P = corners.map(c => [c[0] * sx - W / 2, c[1] * sy, c[2] * sz - D / 2]);
+        // obrtanje redosleda temena ako normala ne gleda napolje
+        const e1 = [P[1][0] - P[0][0], P[1][1] - P[0][1], P[1][2] - P[0][2]], e2 = [P[2][0] - P[0][0], P[2][1] - P[0][1], P[2][2] - P[0][2]];
+        const cr = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
+        if (cr[0] * nor[0] + cr[1] * nor[1] + cr[2] * nor[2] < 0) P = [P[0], P[3], P[2], P[1]];
+        const base = g.pos.length / 3;
+        for (const p of P) { g.pos.push(p[0], p[1], p[2]); g.nor.push(nor[0], nor[1], nor[2]); const uv = uvf(p[0], p[1], p[2]); g.uv.push(uv[0], uv[1]); }
+        g.idx.push(base, base + 1, base + 2, base, base + 2, base + 3); g.quads.push(base); quads++;
+      }
+    }
+  }
+  return { groups: [...groups.values()].filter(g => g.idx.length), quads };
+}
+
+/* =====================================================================
+   3. IZGRADNJA MODELA
+   ===================================================================== */
+let model = null, buildTimer = 0, colorTouched = false;
+$('color').addEventListener('input', () => colorTouched = true);
+const dimsCm = () => [Math.max(1, +$('W').value || 1), Math.max(1, +$('D').value || 1), Math.max(1, +$('H').value || 1)];
+function fail(m) { $('err').textContent = m || ''; }
+function scheduleBuild() { if (!model) return; clearTimeout(buildTimer); buildTimer = setTimeout(build, 350); }
+
+function build() {
+  fail('');
+  const ready = Object.fromEntries(Object.entries(photos).filter(([k, p]) => p.crop && p.mask));
+  if (!ready.front && !ready.side && !ready.top) { fail('Dodajte bar jednu fotografiju (prednju, bočnu ili gornju).'); return; }
+  const [Wc, Dc, Hc] = dimsCm(), W = Wc / 100, D = Dc / 100, H = Hc / 100;
+  const N = gridSize(W, D, H, +$('cell').value);
+  const t0 = performance.now();
+  const vox = voxelize(ready, N[0], N[1], N[2]);
+  let count = 0; for (let i = 0; i < vox.length; i++) count += vox[i]; if (!count) { fail('Siluete se ne preklapaju (prazan model). Proverite redosled slika i smer „prednja strana je…“.'); return; }
+  const flags = { frontLeft: ready.side ? ready.side.frontLeft : true, frontBottom: ready.top ? ready.top.frontBottom : true };
+  const texOf = { front: ready.front, side: ready.side, top: ready.top, back: ready.back };
+  const mesh = meshVoxels(vox, N, W, D, H, texOf, null, flags);
+  const hex = $('color').value, base = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  const front = ready.front || ready.side || ready.top, avg = front.avg;
+  if (!colorTouched) { $('color').value = '#' + avg.map(v => Math.round(v).toString(16).padStart(2, '0')).join(''); }
+  const hex2 = $('color').value; base.splice(0, 3, ...[1, 3, 5].map(i => parseInt(hex2.slice(i, i + 2), 16)));
+  model = { name: $('name').value.trim() || 'Proizvod', W, D, H, N, mesh, texOf, color: base, avg, ms: Math.round(performance.now() - t0) };
+  uploadModel();
+  $('dl').disabled = false; $('empty').hidden = true; $('hud').hidden = false; $('tools').hidden = false;
+  const tris = mesh.quads * 2;
+  $('hud').textContent = `${model.name} · Š ${Wc} × D ${Dc} × V ${Hc} cm`;
+  $('stat').innerHTML = `Mreža: <b>${tris.toLocaleString('sr')}</b> trouglova, mreža voxela ${N.join('×')}, ${Object.values(texOf).filter(Boolean).length} tekstura.<br>Vreme: ${model.ms} ms.`;
+}
+
+/* =====================================================================
+   4. GLB IZVOZ (sopstveni pisac, bez biblioteka)
+   ===================================================================== */
+async function exportGLB() {
+  const m = model; if (!m) return;
+  const bins = [], views = [], accessors = [], materials = [], textures = [], images = [], prims = [];
+  let off = 0;
+  const addBuf = (u8, target) => { const pad = (4 - (u8.length % 4)) % 4; bins.push(u8, new Uint8Array(pad)); const v = { buffer: 0, byteOffset: off, byteLength: u8.length }; if (target) v.target = target; views.push(v); off += u8.length + pad; return views.length - 1; };
+  const lin = c => Math.pow(c / 255, 2.2);
+  const texIdx = {};
+  const jpeg = c => new Promise(res => c.toBlob(b => b.arrayBuffer().then(ab => res(new Uint8Array(ab))), 'image/jpeg', 0.92));
+  for (const g of m.mesh.groups) {
+    let matIndex;
+    if (g.key === 'color') { materials.push({ name: 'boja', pbrMetallicRoughness: { baseColorFactor: [lin(m.color[0]), lin(m.color[1]), lin(m.color[2]), 1], metallicFactor: 0, roughnessFactor: 0.85 } }); }
+    else {
+      if (!(g.key in texIdx)) { const c = m.texOf[g.key].crop.canvas; const jb = await jpeg(c); images.push({ bufferView: addBuf(jb), mimeType: 'image/jpeg' }); textures.push({ source: images.length - 1, sampler: 0 }); texIdx[g.key] = textures.length - 1; }
+      materials.push({ name: g.key, pbrMetallicRoughness: { baseColorTexture: { index: texIdx[g.key] }, metallicFactor: 0, roughnessFactor: 0.8 } });
+    }
+    matIndex = materials.length - 1;
+    const nv = g.pos.length / 3; let mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+    for (let i = 0; i < g.pos.length; i += 3) for (let k = 0; k < 3; k++) { mn[k] = Math.min(mn[k], g.pos[i + k]); mx[k] = Math.max(mx[k], g.pos[i + k]); }
+    const acc = (view, type, comp, count, extra) => { accessors.push(Object.assign({ bufferView: view, componentType: comp, count, type }, extra)); return accessors.length - 1; };
+    const attrs = {};
+    attrs.POSITION = acc(addBuf(new Uint8Array(new Float32Array(g.pos).buffer), 34962), 'VEC3', 5126, nv, { min: mn, max: mx });
+    attrs.NORMAL = acc(addBuf(new Uint8Array(new Float32Array(g.nor).buffer), 34962), 'VEC3', 5126, nv);
+    if (g.key !== 'color') attrs.TEXCOORD_0 = acc(addBuf(new Uint8Array(new Float32Array(g.uv).buffer), 34962), 'VEC2', 5126, nv);
+    const indices = acc(addBuf(new Uint8Array(new Uint32Array(g.idx).buffer), 34963), 'SCALAR', 5125, g.idx.length);
+    prims.push({ attributes: attrs, indices, material: matIndex });
+  }
+  let total = 0; for (const b of bins) total += b.length; const bin = new Uint8Array(total); let o = 0; for (const b of bins) { bin.set(b, o); o += b.length; }
+  const json = { asset: { version: '2.0', generator: 'Aki Modeler' }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ name: m.name, mesh: 0 }], meshes: [{ name: m.name, primitives: prims }],
+    materials, accessors, bufferViews: views, buffers: [{ byteLength: bin.length }] };
+  if (images.length) { json.images = images; json.textures = textures; json.samplers = [{ magFilter: 9729, minFilter: 9987, wrapS: 33071, wrapT: 33071 }]; }
+  let js = new TextEncoder().encode(JSON.stringify(json)); const jpad = (4 - (js.length % 4)) % 4; const jp = new Uint8Array(js.length + jpad).fill(0x20); jp.set(js);
+  const len = 12 + 8 + jp.length + 8 + bin.length, out = new DataView(new ArrayBuffer(len)); let p = 0;
+  out.setUint32(p, 0x46546C67, true); out.setUint32(p + 4, 2, true); out.setUint32(p + 8, len, true); p += 12;
+  out.setUint32(p, jp.length, true); out.setUint32(p + 4, 0x4E4F534A, true); p += 8; new Uint8Array(out.buffer).set(jp, p); p += jp.length;
+  out.setUint32(p, bin.length, true); out.setUint32(p + 4, 0x004E4942, true); p += 8; new Uint8Array(out.buffer).set(bin, p);
+  const blob = new Blob([out.buffer], { type: 'model/gltf-binary' }), a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = (m.name.replace(/[^\w\-]+/g, '_') || 'model') + '.glb'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  $('stat').innerHTML += `<br>Sačuvan fajl: <b>${a.download}</b> (${(len / 1024).toFixed(0)} KB)`;
+  window.__lastGLB = out.buffer;
+}
+
+/* =====================================================================
+   5. PREGLED (sopstveni WebGL2 prikazivač, bez three.js)
+   ===================================================================== */
+const cv = $('gl'), gl = cv.getContext('webgl2', { antialias: true });
+if (!gl) { $('empty').innerHTML = '<div><b>Ovaj pregledač ne podržava WebGL2.</b><br>Isprobajte novije izdanje Chrome-a, Edge-a ili Firefox-a.</div>'; }
+const VS = `#version 300 es
+in vec3 aPos; in vec3 aNor; in vec2 aUv; uniform mat4 uMVP; out vec3 vN; out vec2 vUv;
+void main(){ vN = aNor; vUv = aUv; gl_Position = uMVP * vec4(aPos, 1.0); }`;
+const FS = `#version 300 es
+precision mediump float; in vec3 vN; in vec2 vUv; uniform sampler2D uTex; uniform vec4 uColor; uniform int uUseTex; uniform int uFlat; out vec4 o;
+void main(){
+  if (uFlat == 1) { o = uColor; return; }
+  vec3 n = normalize(vN); vec3 L = normalize(vec3(0.5, 0.9, 0.7)); vec3 L2 = normalize(vec3(-0.6, 0.3, -0.4));
+  float l = 0.52 + 0.42 * max(dot(n, L), 0.0) + 0.18 * max(dot(n, L2), 0.0);
+  vec4 c = uUseTex == 1 ? texture(uTex, vUv) : uColor; o = vec4(c.rgb * l, 1.0);
+}`;
+let prog, loc = {}, gpu = [], gridBuf, gridN = 0, wire = false;
+function mkShader(t, s) { const sh = gl.createShader(t); gl.shaderSource(sh, s); gl.compileShader(sh); if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(sh)); return sh; }
+if (gl) {
+  prog = gl.createProgram(); gl.attachShader(prog, mkShader(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, mkShader(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog);
+  for (const n of ['aPos', 'aNor', 'aUv']) loc[n] = gl.getAttribLocation(prog, n);
+  for (const n of ['uMVP', 'uTex', 'uColor', 'uUseTex', 'uFlat']) loc[n] = gl.getUniformLocation(prog, n);
+  gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE);
+}
+function freeGpu() { for (const g of gpu) { gl.deleteVertexArray(g.vao); [g.b1, g.b2, g.b3, g.b4, g.bl].forEach(b => b && gl.deleteBuffer(b)); if (g.tex) gl.deleteTexture(g.tex); } gpu = []; }
+function uploadModel() {
+  if (!gl) return; freeGpu(); const m = model;
+  for (const g of m.mesh.groups) {
+    const o = { key: g.key, n: g.idx.length, color: [m.color[0] / 255, m.color[1] / 255, m.color[2] / 255, 1] };
+    o.vao = gl.createVertexArray(); gl.bindVertexArray(o.vao);
+    const buf = (data, att, size) => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW); gl.enableVertexAttribArray(att); gl.vertexAttribPointer(att, size, gl.FLOAT, false, 0, 0); return b; };
+    o.b1 = buf(g.pos, loc.aPos, 3); o.b2 = buf(g.nor, loc.aNor, 3); o.b3 = buf(g.uv, loc.aUv, 2);
+    o.b4 = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, o.b4); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(g.idx), gl.STATIC_DRAW);
+    // linije za prikaz mreže (ivice svakog pravougaonika)
+    const lines = []; for (const q of g.quads) lines.push(q, q + 1, q + 1, q + 2, q + 2, q + 3, q + 3, q);
+    o.bl = gl.createBuffer(); o.nl = lines.length; o.lines = new Uint32Array(lines);
+    if (g.key !== 'color') {
+      o.tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, o.tex); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, m.texOf[g.key].crop.canvas); gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    }
+    gpu.push(o);
+  }
+  gl.bindVertexArray(null);
+  // pod sa mrežom na 10 cm
+  const gl_ = [], ext = Math.max(m.W, m.D) * 1.2 + .4, st = .1; for (let v = -ext; v <= ext + 1e-6; v += st) { gl_.push(v, 0, -ext, v, 0, ext, -ext, 0, v, ext, 0, v); }
+  gridN = gl_.length / 3; gridBuf = gridBuf || gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, gridBuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(gl_), gl.STATIC_DRAW);
+  resetView();
+}
+
+// kamera (orbit)
+const cam = { yaw: .6, pitch: .35, dist: 3, tx: 0, ty: .4, tz: 0 };
+function resetView() { const m = model; if (!m) return; cam.yaw = .6; cam.pitch = .35; cam.dist = Math.max(m.W, m.D, m.H) * 2.3 + .3; cam.tx = 0; cam.ty = m.H / 2; cam.tz = 0; }
+const mat = {
+  persp(f, a, n, fr) { const t = 1 / Math.tan(f / 2), r = 1 / (n - fr); return [t / a, 0, 0, 0, 0, t, 0, 0, 0, 0, (n + fr) * r, -1, 0, 0, 2 * n * fr * r, 0]; },
+  look(e, c, u) { const z = norm(sub(e, c)), x = norm(cross(u, z)), y = cross(z, x); return [x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, -dot(x, e), -dot(y, e), -dot(z, e), 1]; },
+  mul(a, b) { const o = new Array(16); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) o[j * 4 + i] = a[i] * b[j * 4] + a[4 + i] * b[j * 4 + 1] + a[8 + i] * b[j * 4 + 2] + a[12 + i] * b[j * 4 + 3]; return o; },
+};
+function sub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; } function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+function norm(a) { const l = Math.hypot(...a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; }
+
+function frame() {
+  if (!gl) return; requestAnimationFrame(frame);
+  const dpr = Math.min(devicePixelRatio || 1, 2), w = Math.max(2, Math.round(cv.clientWidth * dpr)), h = Math.max(2, Math.round(cv.clientHeight * dpr));
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  gl.viewport(0, 0, w, h); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  if (!model) return;
+  const e = [cam.tx + cam.dist * Math.cos(cam.pitch) * Math.sin(cam.yaw), cam.ty + cam.dist * Math.sin(cam.pitch), cam.tz + cam.dist * Math.cos(cam.pitch) * Math.cos(cam.yaw)];
+  const mvp = mat.mul(mat.persp(.8, w / h, .02, 60), mat.look(e, [cam.tx, cam.ty, cam.tz], [0, 1, 0]));
+  gl.useProgram(prog); gl.uniformMatrix4fv(loc.uMVP, false, new Float32Array(mvp)); gl.uniform1i(loc.uTex, 0);
+  // pod
+  gl.disable(gl.CULL_FACE); gl.uniform1i(loc.uFlat, 1); gl.uniform4f(loc.uColor, .72, .66, .58, .0);
+  gl.bindVertexArray(null); gl.bindBuffer(gl.ARRAY_BUFFER, gridBuf); gl.enableVertexAttribArray(loc.aPos); gl.vertexAttribPointer(loc.aPos, 3, gl.FLOAT, false, 0, 0);
+  gl.disableVertexAttribArray(loc.aNor); gl.disableVertexAttribArray(loc.aUv); gl.uniform4f(loc.uColor, .78, .72, .64, 1); gl.drawArrays(gl.LINES, 0, gridN);
+  gl.enable(gl.CULL_FACE); gl.uniform1i(loc.uFlat, 0);
+  for (const g of gpu) {
+    gl.bindVertexArray(g.vao);
+    if (g.tex) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, g.tex); gl.uniform1i(loc.uUseTex, 1); } else { gl.uniform1i(loc.uUseTex, 0); gl.uniform4fv(loc.uColor, g.color); }
+    gl.drawElements(gl.TRIANGLES, g.n, gl.UNSIGNED_INT, 0);
+  }
+  if (wire) {
+    gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-1, -1); gl.uniform1i(loc.uFlat, 1); gl.uniform4f(loc.uColor, .1, .08, .07, 1); gl.disable(gl.CULL_FACE);
+    for (const g of gpu) { gl.bindVertexArray(g.vao); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, g.bl); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, g.lines, gl.STREAM_DRAW); gl.drawElements(gl.LINES, g.nl, gl.UNSIGNED_INT, 0); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, g.b4); }
+    gl.disable(gl.POLYGON_OFFSET_FILL); gl.enable(gl.CULL_FACE);
+  }
+  gl.bindVertexArray(null);
+}
+// miš / dodir
+{ const pts = new Map(); let pinch = 0;
+  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); pinch = 0; });
+  cv.addEventListener('pointermove', e => {
+    const p = pts.get(e.pointerId); if (!p) return;
+    if (pts.size === 1) { cam.yaw -= (e.clientX - p[0]) * .008; cam.pitch = Math.max(-.2, Math.min(1.5, cam.pitch + (e.clientY - p[1]) * .008)); }
+    pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch) cam.dist = Math.max(.2, Math.min(30, cam.dist * pinch / d)); pinch = d; }
+  });
+  const up = e => { pts.delete(e.pointerId); pinch = 0; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('wheel', e => { e.preventDefault(); cam.dist = Math.max(.2, Math.min(30, cam.dist * Math.exp(e.deltaY * .001))); }, { passive: false });
+}
+$('wire').onclick = () => { wire = !wire; $('wire').textContent = wire ? 'Puno' : 'Mreža'; };
+$('reset').onclick = resetView;
+
+/* =====================================================================
+   6. PROJEKAT (sačuvaj / otvori)
+   ===================================================================== */
+$('saveProj').onclick = () => {
+  const d = { v: 1, name: $('name').value, W: $('W').value, D: $('D').value, H: $('H').value, cell: $('cell').value, color: $('color').value, photos: {} };
+  for (const [k, p] of Object.entries(photos)) d.photos[k] = { src: p.src, name: p.name, thr: p.thr, holes: p.holes, flip: p.flip, frontLeft: p.frontLeft, frontBottom: p.frontBottom };
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(d)], { type: 'application/json' }));
+  a.download = ($('name').value.replace(/[^\w\-]+/g, '_') || 'projekat') + '.aki.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+};
+$('loadProj').onclick = () => $('projFile').click();
+$('projFile').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    $('name').value = d.name; $('W').value = d.W; $('D').value = d.D; $('H').value = d.H; $('cell').value = d.cell; $('color').value = d.color;
+    for (const k of Object.keys(photos)) delete photos[k];
+    for (const s of SLOTS) refreshSlot(s.key);
+    for (const [k, p] of Object.entries(d.photos || {})) {
+      await setPhotoSrc(k, p.src, p.name, { thr: p.thr, holes: p.holes, flip: p.flip, frontLeft: p.frontLeft, frontBottom: p.frontBottom });
+      const el = document.querySelector(`.slot[data-k="${k}"]`);
+      el.querySelector('[data-thr]').value = p.thr; el.querySelector('[data-thrv]').textContent = p.thr; el.querySelector('[data-holes]').checked = p.holes; el.querySelector('[data-flip]').checked = p.flip;
+      const fl = el.querySelector('[data-fl]'); if (fl) fl.value = p.frontLeft ? '1' : '0'; const fb = el.querySelector('[data-fb]'); if (fb) fb.value = p.frontBottom ? '1' : '0';
+    }
+  } catch (err) { fail('Projekat se ne može otvoriti: ' + err.message); }
+  e.target.value = '';
+};
+
+/* ---------- povezivanje ---------- */
+buildSlotsUI();
+$('build').onclick = build;
+$('dl').onclick = exportGLB;
+for (const id of ['W', 'D', 'H', 'cell', 'color', 'name']) $(id).addEventListener('change', scheduleBuild);
+requestAnimationFrame(frame);
+// za testiranje i automatizaciju
+window.AkiModeler = { setPhotoSrc, build, photos, exportGLB, get model() { return model; } };
+</script>
+</body>
+</html>
